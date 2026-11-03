@@ -37,9 +37,14 @@ function Login({ onLogin, onRegister }) {
   // =====================================================
 
   const handleChange = (e) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [e.target.name]: e.target.value,
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
     }));
 
     setError("");
@@ -54,26 +59,34 @@ function Login({ onLogin, onRegister }) {
     e.preventDefault();
 
     // -------------------------------------------------
-    // VALIDACIÓN
+    // VALIDACIONES
     // -------------------------------------------------
 
-    if (
-      !form.email.trim() ||
-      !form.password
-    ) {
+    if (!form.email.trim()) {
       setError(
-        "Ingresa tu correo y contraseña."
+        "Ingresa tu correo electrónico."
       );
 
       return;
     }
 
+
+    if (!form.password) {
+      setError(
+        "Ingresa tu contraseña."
+      );
+
+      return;
+    }
+
+
     setLoading(true);
     setError("");
 
+
     try {
       // =================================================
-      // 1. AUTENTICACIÓN CON SUPABASE
+      // AUTENTICACIÓN CON SUPABASE
       // =================================================
 
       const {
@@ -93,7 +106,7 @@ function Login({ onLogin, onRegister }) {
 
 
       // =================================================
-      // 2. ERROR DE AUTENTICACIÓN
+      // ERROR DE LOGIN
       // =================================================
 
       if (loginError) {
@@ -102,23 +115,43 @@ function Login({ onLogin, onRegister }) {
           loginError
         );
 
+
+        const message =
+          loginError.message
+            ?.toLowerCase() || "";
+
+
         if (
-          loginError.message ===
-          "Invalid login credentials"
+          message.includes(
+            "invalid login credentials"
+          )
         ) {
           setError(
             "Correo o contraseña incorrectos."
           );
+
         } else if (
-          loginError.message ===
-          "Email not confirmed"
+          message.includes(
+            "email not confirmed"
+          )
         ) {
           setError(
             "Debes confirmar tu correo electrónico antes de iniciar sesión."
           );
+
+        } else if (
+          message.includes(
+            "failed to fetch"
+          )
+        ) {
+          setError(
+            "No fue posible conectarse con Supabase. Revisa tu conexión y configuración."
+          );
+
         } else {
           setError(
-            loginError.message
+            loginError.message ||
+            "No fue posible iniciar sesión."
           );
         }
 
@@ -127,7 +160,7 @@ function Login({ onLogin, onRegister }) {
 
 
       // =================================================
-      // 3. VERIFICAR USUARIO
+      // VERIFICAR USUARIO
       // =================================================
 
       if (!data?.user) {
@@ -140,130 +173,22 @@ function Login({ onLogin, onRegister }) {
 
 
       // =================================================
-      // 4. CONSULTAR PUBLIC.USUARIOS
+      // AVISAR A APP.JSX
+      //
+      // App.jsx se encargará de:
+      //
+      // 1. Consultar public.usuarios
+      // 2. Obtener nombre
+      // 3. Obtener rol
+      // 4. Verificar activo
+      // 5. Mostrar el dashboard correcto
       // =================================================
 
-      const {
-        data: profile,
-        error: profileError,
-      } =
-        await supabase
-          .from("usuarios")
-          .select(`
-            id_usuario,
-            nombre,
-            rol,
-            activo
-          `)
-          .eq(
-            "id_usuario",
-            data.user.id
-          )
-          .maybeSingle();
-
-
-      // =================================================
-      // 5. ERROR AL CONSULTAR PERFIL
-      // =================================================
-
-      if (profileError) {
-        console.error(
-          "Error obteniendo perfil:",
-          profileError
+      if (onLogin) {
+        await onLogin(
+          data.user
         );
-
-        await supabase.auth.signOut();
-
-        setError(
-          "No fue posible consultar tu perfil de Can Wash."
-        );
-
-        return;
       }
-
-
-      // =================================================
-      // 6. PERFIL NO ENCONTRADO
-      // =================================================
-
-      if (!profile) {
-        await supabase.auth.signOut();
-
-        setError(
-          "Tu cuenta existe, pero no tiene un perfil asociado en Can Wash."
-        );
-
-        return;
-      }
-
-
-      // =================================================
-      // 7. CUENTA DESACTIVADA
-      // =================================================
-
-      if (profile.activo === false) {
-        await supabase.auth.signOut();
-
-        setError(
-          "Esta cuenta se encuentra desactivada."
-        );
-
-        return;
-      }
-
-
-      // =================================================
-      // 8. VALIDAR ROL
-      // =================================================
-
-      const validRoles = [
-        "ADMIN",
-        "EMPLEADO",
-        "CLIENTE",
-      ];
-
-      if (
-        !validRoles.includes(
-          profile.rol
-        )
-      ) {
-        await supabase.auth.signOut();
-
-        setError(
-          "Tu cuenta no tiene un rol válido."
-        );
-
-        return;
-      }
-
-
-      // =================================================
-      // 9. USUARIO PARA REACT
-      // =================================================
-
-      const userData = {
-        id_usuario:
-          profile.id_usuario,
-
-        nombre:
-          profile.nombre,
-
-        email:
-          data.user.email,
-
-        rol:
-          profile.rol,
-
-        activo:
-          profile.activo,
-      };
-
-
-      // =================================================
-      // 10. ENVIAR USUARIO A APP.JSX
-      // =================================================
-
-      await onLogin(userData);
 
     } catch (unexpectedError) {
       console.error(
@@ -271,9 +196,23 @@ function Login({ onLogin, onRegister }) {
         unexpectedError
       );
 
-      setError(
-        "Ocurrió un error inesperado al iniciar sesión."
-      );
+
+      if (
+        unexpectedError?.message
+          ?.toLowerCase()
+          .includes(
+            "failed to fetch"
+          )
+      ) {
+        setError(
+          "No fue posible conectarse con Supabase."
+        );
+
+      } else {
+        setError(
+          "Ocurrió un error inesperado al iniciar sesión."
+        );
+      }
 
     } finally {
       setLoading(false);
@@ -310,6 +249,7 @@ function Login({ onLogin, onRegister }) {
           to-[#7899A4]
           p-12
           text-white
+
           lg:flex
           lg:flex-col
           lg:items-center
@@ -318,7 +258,7 @@ function Login({ onLogin, onRegister }) {
         "
       >
 
-        {/* CÍRCULO DECORATIVO SUPERIOR */}
+        {/* DECORACIÓN SUPERIOR */}
 
         <div
           className="
@@ -333,7 +273,7 @@ function Login({ onLogin, onRegister }) {
         />
 
 
-        {/* CÍRCULO DECORATIVO INFERIOR */}
+        {/* DECORACIÓN INFERIOR */}
 
         <div
           className="
@@ -348,14 +288,20 @@ function Login({ onLogin, onRegister }) {
         />
 
 
-        {/* CONTENIDO */}
+        {/* LOGO */}
 
-        <div className="relative z-10">
+        <div
+          className="
+            relative
+            z-10
+          "
+        >
 
           <PawPrint
             size={75}
             className="mx-auto"
           />
+
 
           <h1
             className="
@@ -367,6 +313,7 @@ function Login({ onLogin, onRegister }) {
           >
             Can Wash
           </h1>
+
 
           <p
             className="
@@ -386,7 +333,7 @@ function Login({ onLogin, onRegister }) {
 
 
       {/* =================================================
-          LADO DERECHO
+          FORMULARIO
       ================================================== */}
 
       <section
@@ -397,6 +344,7 @@ function Login({ onLogin, onRegister }) {
           justify-center
           px-6
           py-12
+
           sm:px-10
         "
       >
@@ -408,9 +356,7 @@ function Login({ onLogin, onRegister }) {
           "
         >
 
-          {/* =================================================
-              LOGO PEQUEÑO
-          ================================================== */}
+          {/* ICONO */}
 
           <div
             className="
@@ -430,9 +376,7 @@ function Login({ onLogin, onRegister }) {
           </div>
 
 
-          {/* =================================================
-              TÍTULO
-          ================================================== */}
+          {/* TÍTULO */}
 
           <h2
             className="
@@ -440,7 +384,6 @@ function Login({ onLogin, onRegister }) {
               font-bold
               tracking-tight
               text-canwash-dark
-              sm:text-[38px]
             "
           >
             Bienvenido
@@ -462,7 +405,7 @@ function Login({ onLogin, onRegister }) {
 
 
           {/* =================================================
-              FORMULARIO
+              FORM
           ================================================== */}
 
           <form
@@ -500,6 +443,7 @@ function Login({ onLogin, onRegister }) {
                 bg-white
                 px-4
                 transition
+
                 focus-within:border-canwash
                 focus-within:ring-4
                 focus-within:ring-canwash/20
@@ -520,8 +464,6 @@ function Login({ onLogin, onRegister }) {
                 name="email"
                 type="email"
 
-                placeholder="correo@ejemplo.com"
-
                 value={
                   form.email
                 }
@@ -529,6 +471,8 @@ function Login({ onLogin, onRegister }) {
                 onChange={
                   handleChange
                 }
+
+                placeholder="correo@ejemplo.com"
 
                 autoComplete="email"
 
@@ -546,7 +490,9 @@ function Login({ onLogin, onRegister }) {
                   text-canwash-text
                   outline-none
                   placeholder:text-slate-400
+
                   focus:ring-0
+
                   disabled:cursor-not-allowed
                   disabled:opacity-60
                 "
@@ -586,6 +532,7 @@ function Login({ onLogin, onRegister }) {
                 bg-white
                 px-4
                 transition
+
                 focus-within:border-canwash
                 focus-within:ring-4
                 focus-within:ring-canwash/20
@@ -611,8 +558,6 @@ function Login({ onLogin, onRegister }) {
                     : "password"
                 }
 
-                placeholder="Ingresa tu contraseña"
-
                 value={
                   form.password
                 }
@@ -620,6 +565,8 @@ function Login({ onLogin, onRegister }) {
                 onChange={
                   handleChange
                 }
+
+                placeholder="Ingresa tu contraseña"
 
                 autoComplete="current-password"
 
@@ -637,23 +584,24 @@ function Login({ onLogin, onRegister }) {
                   text-canwash-text
                   outline-none
                   placeholder:text-slate-400
+
                   focus:ring-0
+
                   disabled:cursor-not-allowed
                   disabled:opacity-60
                 "
               />
 
 
-              {/* =========================================
-                  MOSTRAR / OCULTAR
-              ========================================== */}
+              {/* MOSTRAR CONTRASEÑA */}
 
               <button
                 type="button"
 
                 onClick={() =>
                   setShowPassword(
-                    (current) => !current
+                    (current) =>
+                      !current
                   )
                 }
 
@@ -676,11 +624,14 @@ function Login({ onLogin, onRegister }) {
                   rounded-lg
                   text-canwash
                   transition
+
                   hover:bg-canwash-background
                   hover:text-canwash-dark
+
                   focus:outline-none
                   focus-visible:ring-2
                   focus-visible:ring-canwash
+
                   disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
@@ -704,6 +655,7 @@ function Login({ onLogin, onRegister }) {
             {error && (
               <div
                 role="alert"
+
                 className="
                   mt-4
                   rounded-xl
@@ -714,6 +666,7 @@ function Login({ onLogin, onRegister }) {
                   py-3
                   text-sm
                   font-medium
+                  leading-5
                   text-red-700
                 "
               >
@@ -723,7 +676,7 @@ function Login({ onLogin, onRegister }) {
 
 
             {/* =============================================
-                BOTÓN LOGIN
+                LOGIN
             ============================================== */}
 
             <button
@@ -750,12 +703,15 @@ function Login({ onLogin, onRegister }) {
                 shadow-lg
                 shadow-canwash/20
                 transition
+
                 hover:-translate-y-0.5
                 hover:bg-[#7899A4]
                 hover:shadow-xl
+
                 focus:outline-none
                 focus-visible:ring-4
                 focus-visible:ring-canwash/30
+
                 disabled:cursor-not-allowed
                 disabled:translate-y-0
                 disabled:opacity-60
@@ -777,7 +733,7 @@ function Login({ onLogin, onRegister }) {
 
 
             {/* =============================================
-                CREAR CUENTA
+                REGISTRO
             ============================================== */}
 
             <div
@@ -810,14 +766,18 @@ function Login({ onLogin, onRegister }) {
                 }
 
                 className="
+                  rounded
                   font-bold
                   text-canwash-dark
                   transition
+
                   hover:text-canwash
                   hover:underline
+
                   focus:outline-none
                   focus-visible:ring-2
                   focus-visible:ring-canwash
+
                   disabled:cursor-not-allowed
                   disabled:opacity-50
                 "

@@ -10,8 +10,8 @@ import {
   Mail,
   PawPrint,
   User,
-  UserRound,
   UserPlus,
+  UserRound,
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
@@ -35,11 +35,15 @@ function Register({
     confirmPassword: "",
   });
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
 
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
 
   const [error, setError] =
     useState("");
@@ -52,13 +56,18 @@ function Register({
 
 
   // =====================================================
-  // CAMBIAR INPUT
+  // ACTUALIZAR FORMULARIO
   // =====================================================
 
   const handleChange = (e) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      [e.target.name]: e.target.value,
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
     }));
 
     setError("");
@@ -67,7 +76,7 @@ function Register({
 
 
   // =====================================================
-  // SELECCIONAR TIPO DE CUENTA
+  // CAMBIAR TIPO DE CUENTA
   // =====================================================
 
   const selectAccountType = (type) => {
@@ -79,7 +88,7 @@ function Register({
 
 
   // =====================================================
-  // REGISTRAR
+  // REGISTRAR CUENTA
   // =====================================================
 
   const handleSubmit = async (e) => {
@@ -93,7 +102,16 @@ function Register({
     // VALIDACIONES
     // =================================================
 
-    if (!form.nombre.trim()) {
+    const nombre =
+      form.nombre.trim();
+
+    const email =
+      form.email
+        .trim()
+        .toLowerCase();
+
+
+    if (!nombre) {
       setError(
         "Ingresa tu nombre completo."
       );
@@ -102,7 +120,16 @@ function Register({
     }
 
 
-    if (!form.email.trim()) {
+    if (nombre.length < 3) {
+      setError(
+        "El nombre debe contener al menos 3 caracteres."
+      );
+
+      return;
+    }
+
+
+    if (!email) {
       setError(
         "Ingresa tu correo electrónico."
       );
@@ -166,19 +193,13 @@ function Register({
         error: signUpError,
       } =
         await supabase.auth.signUp({
-          email:
-            form.email
-              .trim()
-              .toLowerCase(),
-
+          email,
           password:
             form.password,
 
           options: {
             data: {
-              nombre:
-                form.nombre.trim(),
-
+              nombre,
               rol:
                 accountType,
             },
@@ -187,7 +208,7 @@ function Register({
 
 
       // =================================================
-      // ERROR DE SUPABASE
+      // ERROR DE REGISTRO
       // =================================================
 
       if (signUpError) {
@@ -197,18 +218,54 @@ function Register({
         );
 
 
-        if (
+        const message =
           signUpError.message
-            .toLowerCase()
-            .includes("already registered")
+            ?.toLowerCase() || "";
+
+
+        if (
+          message.includes(
+            "already registered"
+          ) ||
+          message.includes(
+            "already been registered"
+          )
         ) {
           setError(
             "Ya existe una cuenta registrada con este correo."
           );
 
+        } else if (
+          message.includes(
+            "password"
+          )
+        ) {
+          setError(
+            "La contraseña no cumple con los requisitos de seguridad."
+          );
+
+        } else if (
+          message.includes(
+            "email"
+          )
+        ) {
+          setError(
+            "El correo electrónico no es válido."
+          );
+
+        } else if (
+          message.includes(
+            "failed to fetch"
+          )
+        ) {
+          setError(
+            "No fue posible conectarse con Supabase."
+          );
+
         } else {
           setError(
-            signUpError.message
+            signUpError.message ||
+            "No fue posible crear la cuenta."
           );
         }
 
@@ -217,47 +274,47 @@ function Register({
 
 
       // =================================================
-      // VERIFICAR USUARIO
+      // VERIFICAR USUARIO CREADO
       // =================================================
 
       if (!data?.user) {
         setError(
-          "No fue posible crear la cuenta."
+          "Supabase no devolvió la información del usuario."
         );
 
         return;
       }
 
 
-      // =================================================
-      // IMPORTANTE
-      //
-      // El trigger de Supabase que configuramos debe
-      // crear automáticamente la fila en public.usuarios
-      // usando:
-      //
-      // data.user.id
-      // metadata.nombre
-      // metadata.rol
-      //
-      // Por eso NO insertamos manualmente en usuarios.
-      // =================================================
+      /*
+        ==================================================
+        IMPORTANTE
 
+        NO hacemos:
 
-      // =================================================
-      // MENSAJE DE ÉXITO
-      // =================================================
+        supabase
+          .from("usuarios")
+          .insert(...)
 
-      if (!data.session) {
-        setSuccess(
-          "Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta."
-        );
+        desde React.
 
-      } else {
-        setSuccess(
-          "Cuenta creada correctamente."
-        );
-      }
+        El trigger de Supabase debe tomar:
+
+        auth.users.id
+        raw_user_meta_data.nombre
+        raw_user_meta_data.rol
+
+        y crear:
+
+        public.usuarios
+
+        id_usuario
+        nombre
+        rol
+        activo
+
+        ==================================================
+      */
 
 
       // =================================================
@@ -273,10 +330,54 @@ function Register({
 
 
       // =================================================
+      // ¿REQUIERE CONFIRMACIÓN DE CORREO?
+      // =================================================
+
+      if (!data.session) {
+        setSuccess(
+          "Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión."
+        );
+
+      } else {
+        /*
+          Si Supabase inicia sesión automáticamente
+          después del registro, la cerramos.
+
+          Así mantenemos un flujo sencillo:
+
+          Registro
+             ↓
+          Login
+             ↓
+          Dashboard
+        */
+
+        const {
+          error: logoutError,
+        } =
+          await supabase.auth
+            .signOut();
+
+
+        if (logoutError) {
+          console.warn(
+            "La cuenta se creó, pero no fue posible cerrar la sesión automática:",
+            logoutError
+          );
+        }
+
+
+        setSuccess(
+          "Cuenta creada correctamente. Ya puedes iniciar sesión."
+        );
+      }
+
+
+      // =================================================
       // VOLVER AL LOGIN
       // =================================================
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         if (onRegister) {
           onRegister();
         }
@@ -284,13 +385,27 @@ function Register({
 
     } catch (unexpectedError) {
       console.error(
-        "Error inesperado:",
+        "Error inesperado durante el registro:",
         unexpectedError
       );
 
-      setError(
-        "Ocurrió un error inesperado al crear la cuenta."
-      );
+
+      if (
+        unexpectedError?.message
+          ?.toLowerCase()
+          .includes(
+            "failed to fetch"
+          )
+      ) {
+        setError(
+          "No fue posible conectarse con Supabase."
+        );
+
+      } else {
+        setError(
+          "Ocurrió un error inesperado al crear la cuenta."
+        );
+      }
 
     } finally {
       setLoading(false);
@@ -308,6 +423,7 @@ function Register({
         grid
         min-h-screen
         bg-canwash-background
+
         lg:grid-cols-2
       "
     >
@@ -322,11 +438,14 @@ function Register({
           hidden
           min-h-screen
           overflow-hidden
+
           bg-gradient-to-br
           from-canwash
           to-[#7899A4]
+
           p-12
           text-white
+
           lg:flex
           lg:flex-col
           lg:items-center
@@ -335,37 +454,48 @@ function Register({
         "
       >
 
-        {/* DECORACIÓN */}
+        {/* CÍRCULO SUPERIOR */}
 
         <div
           className="
             absolute
             -left-44
             -top-44
+
             h-[450px]
             w-[450px]
+
             rounded-full
             bg-white/10
           "
         />
 
+
+        {/* CÍRCULO INFERIOR */}
 
         <div
           className="
             absolute
             -bottom-36
             -right-32
+
             h-[350px]
             w-[350px]
+
             rounded-full
             bg-white/10
           "
         />
 
 
-        {/* CONTENIDO */}
+        {/* LOGO */}
 
-        <div className="relative z-10">
+        <div
+          className="
+            relative
+            z-10
+          "
+        >
 
           <PawPrint
             size={75}
@@ -376,6 +506,7 @@ function Register({
           <h1
             className="
               mt-5
+
               text-6xl
               font-bold
               tracking-[-0.06em]
@@ -388,6 +519,7 @@ function Register({
           <p
             className="
               mt-3
+
               text-xs
               font-semibold
               tracking-[0.3em]
@@ -403,15 +535,27 @@ function Register({
               mx-auto
               mt-10
               max-w-sm
+
               rounded-2xl
+
+              border
+              border-white/10
+
               bg-white/10
+
               p-6
+
               text-left
+
               backdrop-blur-sm
             "
           >
 
-            <h3 className="font-semibold">
+            <h3
+              className="
+                font-semibold
+              "
+            >
               Crea tu cuenta
             </h3>
 
@@ -419,14 +563,16 @@ function Register({
             <p
               className="
                 mt-2
+
                 text-sm
                 leading-6
                 text-white/80
               "
             >
-              Regístrate para acceder a
-              las herramientas de Can Wash
-              según tu tipo de usuario.
+              Regístrate para utilizar
+              los servicios de Can Wash
+              según el tipo de cuenta
+              seleccionado.
             </p>
 
           </div>
@@ -437,7 +583,7 @@ function Register({
 
 
       {/* =================================================
-          FORMULARIO
+          LADO DERECHO
       ================================================== */}
 
       <section
@@ -446,8 +592,10 @@ function Register({
           min-h-screen
           items-center
           justify-center
+
           px-6
           py-10
+
           sm:px-10
         "
       >
@@ -466,31 +614,44 @@ function Register({
           <button
             type="button"
 
-            onClick={onBack}
+            onClick={
+              onBack
+            }
 
-            disabled={loading}
+            disabled={
+              loading
+            }
 
             className="
               mb-7
+
               flex
               items-center
               gap-2
+
               rounded-lg
+
               text-sm
               font-semibold
               text-canwash-dark
+
               transition
+
               hover:text-canwash
+
               focus:outline-none
               focus-visible:ring-2
               focus-visible:ring-canwash
+
               disabled:cursor-not-allowed
               disabled:opacity-50
             "
           >
+
             <ArrowLeft size={18} />
 
-            Volver al inicio de sesión
+            Volver
+
           </button>
 
 
@@ -501,13 +662,17 @@ function Register({
           <div
             className="
               mb-6
+
               grid
               h-16
               w-16
               place-items-center
+
               rounded-2xl
+
               bg-canwash-light
               text-canwash-dark
+
               shadow-lg
               shadow-canwash/20
             "
@@ -535,13 +700,14 @@ function Register({
           <p
             className="
               mt-3
+
               text-sm
               leading-7
               text-canwash-muted
             "
           >
-            Selecciona el tipo de cuenta
-            que deseas registrar.
+            Crea una cuenta para utilizar
+            los servicios de Can Wash.
           </p>
 
 
@@ -549,236 +715,90 @@ function Register({
               TIPO DE CUENTA
           ================================================== */}
 
-          <div
-            className="
-              mt-7
-              grid
-              grid-cols-1
-              gap-4
-              sm:grid-cols-2
-            "
-          >
+          <div className="mt-8">
 
-            {/* =============================================
-                CLIENTE
-            ============================================== */}
+            <span
+              className="
+                mb-3
+                block
 
-            <button
-              type="button"
+                text-sm
+                font-semibold
+                text-canwash-dark
+              "
+            >
+              Tipo de cuenta
+            </span>
 
-              onClick={() =>
-                selectAccountType(
+
+            <div
+              className="
+                grid
+                grid-cols-1
+                gap-4
+
+                sm:grid-cols-2
+              "
+            >
+
+              {/* CLIENTE */}
+
+              <AccountTypeButton
+                selected={
+                  accountType ===
                   "CLIENTE"
-                )
-              }
-
-              disabled={loading}
-
-              className={`
-                group
-                flex
-                min-h-36
-                flex-col
-                items-start
-                gap-4
-                rounded-2xl
-                border-2
-                p-5
-                text-left
-                transition
-                focus:outline-none
-                focus-visible:ring-4
-                focus-visible:ring-canwash/20
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-
-                ${
-                  accountType === "CLIENTE"
-                    ? `
-                      border-canwash
-                      bg-canwash-light/20
-                      shadow-md
-                      shadow-canwash/10
-                    `
-                    : `
-                      border-canwash-cream
-                      bg-white
-                      hover:-translate-y-0.5
-                      hover:border-canwash
-                      hover:shadow-md
-                    `
                 }
-              `}
-            >
 
-              <div
-                className={`
-                  grid
-                  h-12
-                  w-12
-                  place-items-center
-                  rounded-xl
-                  transition
+                icon={
+                  <UserRound size={24} />
+                }
 
-                  ${
-                    accountType === "CLIENTE"
-                      ? `
-                        bg-canwash
-                        text-white
-                      `
-                      : `
-                        bg-canwash-cream
-                        text-canwash-dark
-                        group-hover:bg-canwash-light
-                      `
-                  }
-                `}
-              >
-                <UserRound size={24} />
-              </div>
+                title="Cliente"
+
+                description="Registra tus mascotas y consulta sus servicios."
+
+                onClick={() =>
+                  selectAccountType(
+                    "CLIENTE"
+                  )
+                }
+
+                disabled={
+                  loading
+                }
+              />
 
 
-              <div>
+              {/* EMPLEADO */}
 
-                <strong
-                  className="
-                    block
-                    text-base
-                    text-canwash-dark
-                  "
-                >
-                  Cliente
-                </strong>
-
-
-                <span
-                  className="
-                    mt-1
-                    block
-                    text-xs
-                    leading-5
-                    text-canwash-muted
-                  "
-                >
-                  Registra tus mascotas y
-                  consulta tus servicios.
-                </span>
-
-              </div>
-
-            </button>
-
-
-            {/* =============================================
-                EMPLEADO
-            ============================================== */}
-
-            <button
-              type="button"
-
-              onClick={() =>
-                selectAccountType(
+              <AccountTypeButton
+                selected={
+                  accountType ===
                   "EMPLEADO"
-                )
-              }
-
-              disabled={loading}
-
-              className={`
-                group
-                flex
-                min-h-36
-                flex-col
-                items-start
-                gap-4
-                rounded-2xl
-                border-2
-                p-5
-                text-left
-                transition
-                focus:outline-none
-                focus-visible:ring-4
-                focus-visible:ring-canwash/20
-                disabled:cursor-not-allowed
-                disabled:opacity-60
-
-                ${
-                  accountType === "EMPLEADO"
-                    ? `
-                      border-canwash
-                      bg-canwash-light/20
-                      shadow-md
-                      shadow-canwash/10
-                    `
-                    : `
-                      border-canwash-cream
-                      bg-white
-                      hover:-translate-y-0.5
-                      hover:border-canwash
-                      hover:shadow-md
-                    `
                 }
-              `}
-            >
 
-              <div
-                className={`
-                  grid
-                  h-12
-                  w-12
-                  place-items-center
-                  rounded-xl
-                  transition
+                icon={
+                  <BriefcaseBusiness
+                    size={24}
+                  />
+                }
 
-                  ${
-                    accountType === "EMPLEADO"
-                      ? `
-                        bg-canwash
-                        text-white
-                      `
-                      : `
-                        bg-canwash-cream
-                        text-canwash-dark
-                        group-hover:bg-canwash-light
-                      `
-                  }
-                `}
-              >
-                <BriefcaseBusiness
-                  size={24}
-                />
-              </div>
+                title="Empleado"
 
+                description="Consulta tus citas y actividades asignadas."
 
-              <div>
+                onClick={() =>
+                  selectAccountType(
+                    "EMPLEADO"
+                  )
+                }
 
-                <strong
-                  className="
-                    block
-                    text-base
-                    text-canwash-dark
-                  "
-                >
-                  Empleado
-                </strong>
+                disabled={
+                  loading
+                }
+              />
 
-
-                <span
-                  className="
-                    mt-1
-                    block
-                    text-xs
-                    leading-5
-                    text-canwash-muted
-                  "
-                >
-                  Consulta citas, servicios
-                  y actividades asignadas.
-                </span>
-
-              </div>
-
-            </button>
+            </div>
 
           </div>
 
@@ -788,7 +808,10 @@ function Register({
           ================================================== */}
 
           <form
-            onSubmit={handleSubmit}
+            onSubmit={
+              handleSubmit
+            }
+
             className="mt-8"
           >
 
@@ -796,53 +819,23 @@ function Register({
                 NOMBRE
             ============================================== */}
 
-            <label
+            <FormLabel
               htmlFor="nombre"
-              className="
-                mb-2
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Nombre completo
-            </label>
+            </FormLabel>
 
 
-            <div
-              className="
-                flex
-                min-h-12
-                items-center
-                gap-3
-                rounded-xl
-                border
-                border-canwash-light
-                bg-white
-                px-4
-                transition
-                focus-within:border-canwash
-                focus-within:ring-4
-                focus-within:ring-canwash/20
-              "
+            <InputContainer
+              icon={
+                <User size={20} />
+              }
             >
-
-              <User
-                size={20}
-                className="
-                  shrink-0
-                  text-canwash
-                "
-              />
-
 
               <input
                 id="nombre"
                 name="nombre"
                 type="text"
-
-                placeholder="Tu nombre completo"
 
                 value={
                   form.nombre
@@ -852,81 +845,43 @@ function Register({
                   handleChange
                 }
 
+                placeholder="Ej. Juan Pérez"
+
                 autoComplete="name"
 
-                disabled={loading}
+                disabled={
+                  loading
+                }
 
-                className="
-                  min-w-0
-                  flex-1
-                  border-none
-                  bg-transparent
-                  py-3.5
-                  text-sm
-                  text-canwash-text
-                  outline-none
-                  placeholder:text-slate-400
-                  focus:ring-0
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                className={
+                  inputInsideClasses
+                }
               />
 
-            </div>
+            </InputContainer>
 
 
             {/* =============================================
-                CORREO
+                EMAIL
             ============================================== */}
 
-            <label
+            <FormLabel
               htmlFor="email"
-              className="
-                mb-2
-                mt-5
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Correo electrónico
-            </label>
+            </FormLabel>
 
 
-            <div
-              className="
-                flex
-                min-h-12
-                items-center
-                gap-3
-                rounded-xl
-                border
-                border-canwash-light
-                bg-white
-                px-4
-                transition
-                focus-within:border-canwash
-                focus-within:ring-4
-                focus-within:ring-canwash/20
-              "
+            <InputContainer
+              icon={
+                <Mail size={20} />
+              }
             >
-
-              <Mail
-                size={20}
-                className="
-                  shrink-0
-                  text-canwash
-                "
-              />
-
 
               <input
                 id="email"
                 name="email"
                 type="email"
-
-                placeholder="correo@ejemplo.com"
 
                 value={
                   form.email
@@ -936,46 +891,31 @@ function Register({
                   handleChange
                 }
 
+                placeholder="correo@ejemplo.com"
+
                 autoComplete="email"
 
-                disabled={loading}
+                disabled={
+                  loading
+                }
 
-                className="
-                  min-w-0
-                  flex-1
-                  border-none
-                  bg-transparent
-                  py-3.5
-                  text-sm
-                  text-canwash-text
-                  outline-none
-                  placeholder:text-slate-400
-                  focus:ring-0
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                className={
+                  inputInsideClasses
+                }
               />
 
-            </div>
+            </InputContainer>
 
 
             {/* =============================================
                 CONTRASEÑA
             ============================================== */}
 
-            <label
+            <FormLabel
               htmlFor="password"
-              className="
-                mb-2
-                mt-5
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Contraseña
-            </label>
+            </FormLabel>
 
 
             <PasswordInput
@@ -986,27 +926,26 @@ function Register({
                 form.password
               }
 
+              onChange={
+                handleChange
+              }
+
               placeholder="Mínimo 6 caracteres"
 
-              showPassword={
+              visible={
                 showPassword
               }
 
               onToggle={() =>
                 setShowPassword(
-                  (current) => !current
+                  (current) =>
+                    !current
                 )
-              }
-
-              onChange={
-                handleChange
               }
 
               disabled={
                 loading
               }
-
-              autoComplete="new-password"
             />
 
 
@@ -1014,19 +953,11 @@ function Register({
                 CONFIRMAR CONTRASEÑA
             ============================================== */}
 
-            <label
+            <FormLabel
               htmlFor="confirmPassword"
-              className="
-                mb-2
-                mt-5
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Confirmar contraseña
-            </label>
+            </FormLabel>
 
 
             <PasswordInput
@@ -1037,27 +968,26 @@ function Register({
                 form.confirmPassword
               }
 
+              onChange={
+                handleChange
+              }
+
               placeholder="Repite tu contraseña"
 
-              showPassword={
+              visible={
                 showConfirmPassword
               }
 
               onToggle={() =>
                 setShowConfirmPassword(
-                  (current) => !current
+                  (current) =>
+                    !current
                 )
-              }
-
-              onChange={
-                handleChange
               }
 
               disabled={
                 loading
               }
-
-              autoComplete="new-password"
             />
 
 
@@ -1068,16 +998,23 @@ function Register({
             {error && (
               <div
                 role="alert"
+
                 className="
                   mt-5
+
                   rounded-xl
+
                   border
                   border-red-200
+
                   bg-red-50
+
                   px-4
                   py-3
+
                   text-sm
                   font-medium
+                  leading-5
                   text-red-700
                 "
               >
@@ -1093,19 +1030,27 @@ function Register({
             {success && (
               <div
                 role="status"
+
                 className="
                   mt-5
+
                   flex
                   items-start
                   gap-3
+
                   rounded-xl
+
                   border
                   border-emerald-200
+
                   bg-emerald-50
+
                   px-4
                   py-3
+
                   text-sm
                   font-medium
+                  leading-5
                   text-emerald-700
                 "
               >
@@ -1127,37 +1072,49 @@ function Register({
 
 
             {/* =============================================
-                BOTÓN REGISTRO
+                CREAR CUENTA
             ============================================== */}
 
             <button
               type="submit"
 
-              disabled={loading}
+              disabled={
+                loading
+              }
 
               className="
                 mt-6
+
                 flex
                 w-full
                 items-center
                 justify-center
                 gap-2
+
                 rounded-xl
+
                 bg-canwash
+
                 px-5
                 py-4
+
                 text-sm
                 font-semibold
                 text-white
+
                 shadow-lg
                 shadow-canwash/20
+
                 transition
+
                 hover:-translate-y-0.5
                 hover:bg-[#7899A4]
                 hover:shadow-xl
+
                 focus:outline-none
                 focus-visible:ring-4
                 focus-visible:ring-canwash/30
+
                 disabled:cursor-not-allowed
                 disabled:translate-y-0
                 disabled:opacity-60
@@ -1167,12 +1124,7 @@ function Register({
 
               {loading
                 ? "Creando cuenta..."
-                : `Crear cuenta de ${
-                    accountType ===
-                    "CLIENTE"
-                      ? "cliente"
-                      : "empleado"
-                  }`
+                : "Crear cuenta"
               }
 
 
@@ -1184,17 +1136,19 @@ function Register({
 
 
             {/* =============================================
-                VOLVER AL LOGIN
+                LOGIN
             ============================================== */}
 
             <div
               className="
                 mt-6
+
                 flex
                 flex-wrap
                 items-center
                 justify-center
                 gap-1.5
+
                 text-sm
                 text-canwash-muted
               "
@@ -1208,19 +1162,29 @@ function Register({
               <button
                 type="button"
 
-                onClick={onBack}
+                onClick={
+                  onBack
+                }
 
-                disabled={loading}
+                disabled={
+                  loading
+                }
 
                 className="
+                  rounded
+
                   font-bold
                   text-canwash-dark
+
                   transition
+
                   hover:text-canwash
                   hover:underline
+
                   focus:outline-none
                   focus-visible:ring-2
                   focus-visible:ring-canwash
+
                   disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
@@ -1242,19 +1206,175 @@ function Register({
 
 
 /* =========================================================
-   COMPONENTE INPUT DE CONTRASEÑA
+   TIPO DE CUENTA
 ========================================================= */
 
-function PasswordInput({
-  id,
-  name,
-  value,
-  placeholder,
-  showPassword,
-  onToggle,
-  onChange,
+function AccountTypeButton({
+  selected,
+  icon,
+  title,
+  description,
+  onClick,
   disabled,
-  autoComplete,
+}) {
+  return (
+    <button
+      type="button"
+
+      onClick={
+        onClick
+      }
+
+      disabled={
+        disabled
+      }
+
+      className={`
+        group
+
+        flex
+        min-h-36
+        w-full
+        flex-col
+        items-start
+        gap-4
+
+        rounded-2xl
+
+        border-2
+
+        p-5
+
+        text-left
+
+        transition
+
+        focus:outline-none
+        focus-visible:ring-4
+        focus-visible:ring-canwash/20
+
+        disabled:cursor-not-allowed
+        disabled:opacity-60
+
+        ${
+          selected
+            ? `
+              border-canwash
+              bg-canwash-light/20
+              shadow-md
+              shadow-canwash/10
+            `
+            : `
+              border-canwash-cream
+              bg-white
+              hover:-translate-y-0.5
+              hover:border-canwash
+              hover:shadow-md
+            `
+        }
+      `}
+    >
+
+      <div
+        className={`
+          grid
+          h-12
+          w-12
+          place-items-center
+
+          rounded-xl
+
+          transition
+
+          ${
+            selected
+              ? `
+                bg-canwash
+                text-white
+              `
+              : `
+                bg-canwash-cream
+                text-canwash-dark
+
+                group-hover:bg-canwash-light
+              `
+          }
+        `}
+      >
+        {icon}
+      </div>
+
+
+      <div>
+
+        <strong
+          className="
+            block
+            text-base
+            text-canwash-dark
+          "
+        >
+          {title}
+        </strong>
+
+
+        <span
+          className="
+            mt-1
+            block
+
+            text-xs
+            leading-5
+            text-canwash-muted
+          "
+        >
+          {description}
+        </span>
+
+      </div>
+
+    </button>
+  );
+}
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+function FormLabel({
+  htmlFor,
+  children,
+}) {
+  return (
+    <label
+      htmlFor={
+        htmlFor
+      }
+
+      className="
+        mb-2
+        mt-5
+        block
+
+        text-sm
+        font-semibold
+        text-canwash-dark
+      "
+    >
+      {children}
+    </label>
+  );
+}
+
+
+/* =========================================================
+   INPUT CON ICONO
+========================================================= */
+
+function InputContainer({
+  icon,
+  children,
 }) {
   return (
     <div
@@ -1263,83 +1383,109 @@ function PasswordInput({
         min-h-12
         items-center
         gap-3
+
         rounded-xl
+
         border
         border-canwash-light
+
         bg-white
+
         px-4
+
         transition
+
         focus-within:border-canwash
         focus-within:ring-4
         focus-within:ring-canwash/20
       "
     >
 
-      <Lock
-        size={20}
+      <span
         className="
           shrink-0
           text-canwash
         "
-      />
+      >
+        {icon}
+      </span>
 
+
+      {children}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   CONTRASEÑA
+========================================================= */
+
+function PasswordInput({
+  id,
+  name,
+  value,
+  onChange,
+  placeholder,
+  visible,
+  onToggle,
+  disabled,
+}) {
+  return (
+    <InputContainer
+      icon={
+        <Lock size={20} />
+      }
+    >
 
       <input
         id={id}
         name={name}
 
         type={
-          showPassword
+          visible
             ? "text"
             : "password"
         }
 
-        value={value}
-
-        placeholder={
-          placeholder
+        value={
+          value
         }
 
         onChange={
           onChange
         }
 
+        placeholder={
+          placeholder
+        }
+
+        autoComplete="new-password"
+
         disabled={
           disabled
         }
 
-        autoComplete={
-          autoComplete
+        className={
+          inputInsideClasses
         }
-
-        className="
-          min-w-0
-          flex-1
-          border-none
-          bg-transparent
-          py-3.5
-          text-sm
-          text-canwash-text
-          outline-none
-          placeholder:text-slate-400
-          focus:ring-0
-          disabled:cursor-not-allowed
-          disabled:opacity-60
-        "
       />
 
 
       <button
         type="button"
 
-        onClick={onToggle}
+        onClick={
+          onToggle
+        }
 
         disabled={
           disabled
         }
 
         aria-label={
-          showPassword
+          visible
             ? "Ocultar contraseña"
             : "Mostrar contraseña"
         }
@@ -1350,20 +1496,26 @@ function PasswordInput({
           w-9
           shrink-0
           place-items-center
+
           rounded-lg
+
           text-canwash
+
           transition
+
           hover:bg-canwash-background
           hover:text-canwash-dark
+
           focus:outline-none
           focus-visible:ring-2
           focus-visible:ring-canwash
+
           disabled:cursor-not-allowed
           disabled:opacity-50
         "
       >
 
-        {showPassword ? (
+        {visible ? (
           <EyeOff size={19} />
         ) : (
           <Eye size={19} />
@@ -1371,9 +1523,37 @@ function PasswordInput({
 
       </button>
 
-    </div>
+    </InputContainer>
   );
 }
+
+
+/* =========================================================
+   CLASES INPUT
+========================================================= */
+
+const inputInsideClasses = `
+  min-w-0
+  flex-1
+
+  border-none
+
+  bg-transparent
+
+  py-3.5
+
+  text-sm
+  text-canwash-text
+
+  outline-none
+
+  placeholder:text-slate-400
+
+  focus:ring-0
+
+  disabled:cursor-not-allowed
+  disabled:opacity-60
+`;
 
 
 export default Register;
