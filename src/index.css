@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canwash: #89a8b2;
+  --color-canwash-dark: #17384a;
+  --color-canwash-light: #b3c8cf;
+  --color-canwash-cream: #e5e1da;
+  --color-canwash-background: #f1f0e8;
+
+  --color-canwash-text: #294653;
+  --color-canwash-muted: #6e8088;
+
+  --color-canwash-danger: #b75c5c;
+  --color-canwash-success: #4f7c65;
+  --color-canwash-warning: #9a7434;
+}
