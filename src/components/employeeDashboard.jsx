@@ -3205,9 +3205,8 @@ function formatTime(time) {
 }
 
 
-/* =========================================================
-   FECHA PAGO
-========================================================= */
+
+//Fecha de pago
 
 function formatPaymentDate(date) {
   if (!date) {
