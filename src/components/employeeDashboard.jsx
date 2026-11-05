@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
-  LogOut,
   MapPin,
   PawPrint,
   Phone,
@@ -19,6 +18,8 @@ import {
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
+
+import Sidebar from "./sidebar";
 import MobileMenu from "./mobileMenu";
 
 
@@ -78,7 +79,7 @@ function EmployeeDashboard({
 
     try {
       // =================================================
-      // CITAS DEL EMPLEADO
+      // CITAS
       // =================================================
 
       const {
@@ -149,79 +150,78 @@ function EmployeeDashboard({
       }
 
 
-      const appointmentsResult =
+      const appointmentResult =
         appointmentData || [];
 
 
       setAppointments(
-        appointmentsResult
+        appointmentResult
       );
 
 
       // =================================================
-      // OBTENER IDS DE CITAS
+      // PAGOS
       // =================================================
 
       const appointmentIds =
-        appointmentsResult.map(
+        appointmentResult.map(
           (appointment) =>
             appointment.id_cita
         );
 
 
-      // =================================================
-      // PAGOS DE LAS CITAS
-      // =================================================
-
       if (
-        appointmentIds.length > 0
+        appointmentIds.length === 0
       ) {
-        const {
-          data: paymentData,
-          error: paymentError,
-        } = await supabase
-          .from("pagos")
-          .select(`
-            id_pago,
-            id_cita,
-            monto,
-            tipo,
-            metodo,
-            referencia,
-            comprobante_url,
-            estado,
-            fecha_pago
-          `)
-          .in(
-            "id_cita",
-            appointmentIds
-          )
-          .order(
-            "fecha_pago",
-            {
-              ascending: false,
-            }
-          );
+        setPayments([]);
+
+        return;
+      }
 
 
-        if (paymentError) {
-          throw paymentError;
-        }
-
-
-        setPayments(
-          paymentData || []
+      const {
+        data: paymentData,
+        error: paymentError,
+      } = await supabase
+        .from("pagos")
+        .select(`
+          id_pago,
+          id_cita,
+          monto,
+          tipo,
+          metodo,
+          referencia,
+          comprobante_url,
+          estado,
+          fecha_pago
+        `)
+        .in(
+          "id_cita",
+          appointmentIds
+        )
+        .order(
+          "fecha_pago",
+          {
+            ascending: false,
+          }
         );
 
-      } else {
-        setPayments([]);
+
+      if (paymentError) {
+        throw paymentError;
       }
+
+
+      setPayments(
+        paymentData || []
+      );
 
     } catch (loadError) {
       console.error(
         "Error cargando dashboard:",
         loadError
       );
+
 
       setError(
         "No fue posible cargar la información."
@@ -234,7 +234,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // CARGAR AL ENTRAR
+  // CARGA
   // =====================================================
 
   useEffect(() => {
@@ -243,7 +243,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // FECHA ACTUAL
+  // FECHA
   // =====================================================
 
   const today =
@@ -253,7 +253,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // CITAS DE HOY
+  // CITAS HOY
   // =====================================================
 
   const todayAppointments =
@@ -266,7 +266,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // PRÓXIMAS CITAS
+  // PRÓXIMAS
   // =====================================================
 
   const upcomingAppointments =
@@ -280,10 +280,6 @@ function EmployeeDashboard({
     }, [appointments, today]);
 
 
-  // =====================================================
-  // CONFIRMADAS
-  // =====================================================
-
   const confirmedAppointments =
     todayAppointments.filter(
       (appointment) =>
@@ -291,10 +287,6 @@ function EmployeeDashboard({
         "CONFIRMADA"
     ).length;
 
-
-  // =====================================================
-  // PENDIENTES
-  // =====================================================
 
   const pendingAppointments =
     todayAppointments.filter(
@@ -305,7 +297,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // TOTAL PAGOS VALIDADOS
+  // PAGOS
   // =====================================================
 
   const totalPayments =
@@ -326,12 +318,32 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // CAMBIAR VISTA
+  // NAVEGACIÓN
   // =====================================================
 
   const changeView = (newView) => {
     setView(newView);
+
     setMobileMenuOpen(false);
+  };
+
+
+  // =====================================================
+  // PERFIL
+  // =====================================================
+
+  const openProfile = () => {
+    setMobileMenuOpen(false);
+
+    /*
+      Después conectaremos aquí
+      profile.jsx.
+    */
+
+    console.log(
+      "Abrir perfil:",
+      user
+    );
   };
 
 
@@ -339,30 +351,10 @@ function EmployeeDashboard({
   // LOGOUT
   // =====================================================
 
-  const handleLogout = async () => {
-    try {
-      setMobileMenuOpen(false);
+  const handleLogout = () => {
+    setMobileMenuOpen(false);
 
-      const {
-        error: logoutError,
-      } =
-        await supabase.auth
-          .signOut();
-
-
-      if (logoutError) {
-        throw logoutError;
-      }
-
-
-      onLogout();
-
-    } catch (logoutError) {
-      console.error(
-        "Error cerrando sesión:",
-        logoutError
-      );
-    }
+    onLogout();
   };
 
 
@@ -372,59 +364,9 @@ function EmployeeDashboard({
 
   if (loading) {
     return (
-      <main
-        className="
-          grid
-          min-h-screen
-          place-items-center
-          bg-canwash-background
-          px-6
-        "
-      >
-        <div className="text-center">
-
-          <div
-            className="
-              mx-auto
-              grid
-              h-20
-              w-20
-              place-items-center
-              rounded-3xl
-              bg-canwash-light
-              text-canwash-dark
-              shadow-lg
-              shadow-canwash/20
-            "
-          >
-            <PawPrint size={42} />
-          </div>
-
-
-          <h2
-            className="
-              mt-6
-              text-2xl
-              font-bold
-              text-canwash-dark
-            "
-          >
-            Cargando Can Wash...
-          </h2>
-
-
-          <p
-            className="
-              mt-2
-              text-sm
-              text-canwash-muted
-            "
-          >
-            Consultando tus citas.
-          </p>
-
-        </div>
-      </main>
+      <LoadingScreen
+        text="Consultando tus citas."
+      />
     );
   }
 
@@ -442,225 +384,30 @@ function EmployeeDashboard({
     >
 
       {/* =================================================
-          SIDEBAR
+          MISMO SIDEBAR
       ================================================== */}
 
-      <aside
-        className={`
-          fixed
-          left-0
-          top-0
-          z-50
+      <Sidebar
+        user={user}
 
-          flex
-          h-dvh
-          w-72
-          flex-col
+        view={view}
 
-          bg-gradient-to-b
-          from-canwash
-          to-[#7899A4]
+        isOpen={
+          mobileMenuOpen
+        }
 
-          px-5
-          py-8
+        onChangeView={
+          changeView
+        }
 
-          text-white
+        onProfile={
+          openProfile
+        }
 
-          shadow-2xl
-
-          transition-transform
-          duration-300
-          ease-out
-
-          ${
-            mobileMenuOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-
-          md:w-20
-          md:translate-x-0
-          md:px-3
-
-          lg:w-64
-          lg:px-5
-        `}
-      >
-
-        {/* LOGO */}
-
-        <div
-          className="
-            flex
-            items-center
-            gap-3
-            px-2
-
-            md:justify-center
-
-            lg:justify-start
-          "
-        >
-
-          <PawPrint
-            size={34}
-            className="shrink-0"
-          />
-
-
-          <div
-            className="
-              md:hidden
-              lg:block
-            "
-          >
-
-            <strong
-              className="
-                block
-                text-lg
-                font-bold
-              "
-            >
-              Can Wash
-            </strong>
-
-
-            <span
-              className="
-                mt-1
-                block
-                text-[10px]
-                font-medium
-                tracking-[0.15em]
-                text-white/80
-              "
-            >
-              {user?.rol === "ADMIN"
-                ? "PANEL DE ADMINISTRADOR"
-                : "PANEL DE EMPLEADO"}
-            </span>
-
-          </div>
-
-        </div>
-
-
-        {/* =================================================
-            NAVEGACIÓN
-        ================================================== */}
-
-        <nav
-          className="
-            mt-12
-            flex
-            flex-col
-            gap-2
-          "
-        >
-
-          <SidebarButton
-            active={
-              view === "citas"
-            }
-
-            icon={
-              <CalendarDays
-                size={20}
-              />
-            }
-
-            text="Mis citas"
-
-            onClick={() =>
-              changeView("citas")
-            }
-          />
-
-
-          <SidebarButton
-            active={
-              view === "pagos"
-            }
-
-            icon={
-              <CreditCard
-                size={20}
-              />
-            }
-
-            text="Pagos"
-
-            onClick={() =>
-              changeView("pagos")
-            }
-          />
-
-        </nav>
-
-
-        {/* =================================================
-            CERRAR SESIÓN
-        ================================================== */}
-
-        <button
-          type="button"
-
-          onClick={
-            handleLogout
-          }
-
-          className="
-            mt-auto
-
-            flex
-            w-full
-            items-center
-            gap-3
-
-            rounded-xl
-
-            px-4
-            py-3
-
-            text-sm
-            font-medium
-            text-white
-
-            transition
-
-            hover:bg-white/15
-
-            focus:outline-none
-            focus-visible:ring-2
-            focus-visible:ring-white/60
-
-            md:justify-center
-            md:px-2
-
-            lg:justify-start
-            lg:px-4
-          "
-        >
-
-          <LogOut
-            size={20}
-            className="shrink-0"
-          />
-
-
-          <span
-            className="
-              md:hidden
-              lg:inline
-            "
-          >
-            Cerrar sesión
-          </span>
-
-        </button>
-
-      </aside>
+        onLogout={
+          handleLogout
+        }
+      />
 
 
       {/* =================================================
@@ -674,7 +421,8 @@ function EmployeeDashboard({
 
         onToggle={() =>
           setMobileMenuOpen(
-            (current) => !current
+            (current) =>
+              !current
           )
         }
 
@@ -710,193 +458,19 @@ function EmployeeDashboard({
             TOPBAR
         ================================================== */}
 
-        <header
-          className="
-            flex
-            min-h-20
-            items-center
-            justify-between
-            gap-4
-            py-3
-          "
-        >
+        <Topbar
+          user={user}
 
-          <div
-            className="
-              hidden
-              sm:block
-            "
-          >
+          title={
+            view === "pagos"
+              ? "Pagos"
+              : "Mis citas"
+          }
 
-            <span
-              className="
-                text-[10px]
-                font-bold
-                tracking-[0.2em]
-                text-canwash-muted
-              "
-            >
-              CAN WASH
-            </span>
-
-
-            <h2
-              className="
-                mt-1
-                text-xl
-                font-bold
-                text-canwash-dark
-              "
-            >
-              {user?.rol === "ADMIN"
-                ? "Panel de administrador"
-                : "Panel de empleado"}
-            </h2>
-
-          </div>
-
-
-          <div
-            className="
-              ml-auto
-              flex
-              items-center
-              gap-3
-              sm:gap-5
-            "
-          >
-
-            {/* ACTUALIZAR */}
-
-            <button
-              type="button"
-
-              onClick={
-                loadData
-              }
-
-              className="
-                grid
-                h-11
-                w-11
-                place-items-center
-
-                rounded-xl
-
-                border
-                border-canwash-light
-
-                bg-white
-                text-canwash-dark
-
-                transition
-
-                hover:bg-canwash-cream
-
-                focus:outline-none
-                focus-visible:ring-4
-                focus-visible:ring-canwash/20
-
-                sm:flex
-                sm:w-auto
-                sm:gap-2
-                sm:px-4
-                sm:text-sm
-                sm:font-semibold
-              "
-            >
-
-              <RefreshCw
-                size={18}
-              />
-
-
-              <span
-                className="
-                  hidden
-                  sm:inline
-                "
-              >
-                Actualizar
-              </span>
-
-            </button>
-
-
-            {/* USUARIO */}
-
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
-            >
-
-              <div
-                className="
-                  grid
-                  h-11
-                  w-11
-                  shrink-0
-                  place-items-center
-
-                  rounded-full
-
-                  bg-canwash-light
-
-                  font-bold
-                  text-canwash-dark
-                "
-              >
-
-                {user?.nombre
-                  ?.charAt(0)
-                  .toUpperCase() || "E"}
-
-              </div>
-
-
-              <div
-                className="
-                  hidden
-                  sm:block
-                "
-              >
-
-                <strong
-                  className="
-                    block
-                    max-w-44
-                    truncate
-                    text-sm
-                    text-canwash-dark
-                  "
-                >
-                  {user?.nombre ||
-                    "Empleado"}
-                </strong>
-
-
-                <span
-                  className="
-                    mt-1
-                    block
-                    text-xs
-                    text-canwash-muted
-                  "
-                >
-                  {user?.rol ||
-                    "EMPLEADO"}
-                </span>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </header>
+          onRefresh={
+            loadData
+          }
+        />
 
 
         {/* =================================================
@@ -904,45 +478,14 @@ function EmployeeDashboard({
         ================================================== */}
 
         {error && (
-          <div
-            role="alert"
-
-            className="
-              mb-5
-
-              flex
-              items-center
-              gap-3
-
-              rounded-xl
-
-              border
-              border-red-200
-
-              bg-red-50
-
-              px-4
-              py-3
-
-              text-sm
-              font-medium
-              text-red-700
-            "
-          >
-
-            <AlertCircle
-              size={20}
-              className="shrink-0"
-            />
-
+          <ErrorMessage>
             {error}
-
-          </div>
+          </ErrorMessage>
         )}
 
 
         {/* =================================================
-            VISTA CITAS
+            CITAS
         ================================================== */}
 
         {view === "citas" && (
@@ -997,7 +540,6 @@ function EmployeeDashboard({
                 <h1
                   className="
                     mt-3
-
                     text-3xl
                     font-bold
                     tracking-tight
@@ -1015,7 +557,6 @@ function EmployeeDashboard({
                 <p
                   className="
                     mt-3
-
                     text-sm
                     leading-7
                     text-canwash-text
@@ -1069,7 +610,7 @@ function EmployeeDashboard({
               "
             >
 
-              <EmployeeStat
+              <StatCard
                 icon={
                   <CalendarDays />
                 }
@@ -1084,7 +625,7 @@ function EmployeeDashboard({
               />
 
 
-              <EmployeeStat
+              <StatCard
                 icon={
                   <CheckCircle2 />
                 }
@@ -1099,7 +640,7 @@ function EmployeeDashboard({
               />
 
 
-              <EmployeeStat
+              <StatCard
                 icon={
                   <AlertCircle />
                 }
@@ -1114,7 +655,7 @@ function EmployeeDashboard({
               />
 
 
-              <EmployeeStat
+              <StatCard
                 icon={
                   <CalendarClock />
                 }
@@ -1132,7 +673,7 @@ function EmployeeDashboard({
 
 
             {/* =============================================
-                CITAS DE HOY
+                HOY
             ============================================== */}
 
             <AppointmentSection
@@ -1155,7 +696,7 @@ function EmployeeDashboard({
 
 
             {/* =============================================
-                PRÓXIMAS CITAS
+                PRÓXIMAS
             ============================================== */}
 
             <AppointmentSection
@@ -1181,7 +722,7 @@ function EmployeeDashboard({
 
 
         {/* =================================================
-            VISTA PAGOS
+            PAGOS
         ================================================== */}
 
         {view === "pagos" && (
@@ -1198,6 +739,50 @@ function EmployeeDashboard({
               totalPayments
             }
           />
+        )}
+
+
+        {/* =================================================
+            ADMIN - EMPLEADOS
+            BASE PARA FUTURA FUNCIÓN
+        ================================================== */}
+
+        {view === "empleados" &&
+          user?.rol === "ADMIN" && (
+          <section
+            className="
+              rounded-2xl
+              bg-white
+              p-7
+              shadow-lg
+              shadow-canwash-dark/5
+            "
+          >
+
+            <h1
+              className="
+                text-2xl
+                font-bold
+                text-canwash-dark
+              "
+            >
+              Empleados
+            </h1>
+
+
+            <p
+              className="
+                mt-2
+                text-sm
+                text-canwash-muted
+              "
+            >
+              Esta sección queda
+              preparada para administrar
+              empleados posteriormente.
+            </p>
+
+          </section>
         )}
 
       </main>
@@ -1233,77 +818,170 @@ function EmployeeDashboard({
 
 
 /* =========================================================
-   SIDEBAR BUTTON
+   TOPBAR
 ========================================================= */
 
-function SidebarButton({
-  active = false,
-  icon,
-  text,
-  onClick,
+function Topbar({
+  user,
+  title,
+  onRefresh,
 }) {
   return (
-    <button
-      type="button"
-
-      onClick={
-        onClick
-      }
-
-      title={
-        text
-      }
-
-      className={`
+    <header
+      className="
         flex
-        w-full
+        min-h-20
         items-center
-        gap-3
-
-        rounded-xl
-
-        px-4
+        justify-between
+        gap-4
         py-3
-
-        text-sm
-        font-medium
-        text-white
-
-        transition
-
-        focus:outline-none
-        focus-visible:ring-2
-        focus-visible:ring-white/60
-
-        md:justify-center
-        md:px-2
-
-        lg:justify-start
-        lg:px-4
-
-        ${
-          active
-            ? "bg-white/20 font-semibold"
-            : "hover:bg-white/15"
-        }
-      `}
+      "
     >
 
-      <span className="shrink-0">
-        {icon}
-      </span>
-
-
-      <span
+      <div
         className="
-          md:hidden
-          lg:inline
+          hidden
+          sm:block
         "
       >
-        {text}
-      </span>
 
-    </button>
+        <span
+          className="
+            text-[10px]
+            font-bold
+            tracking-[0.2em]
+            text-canwash-muted
+          "
+        >
+          CAN WASH
+        </span>
+
+
+        <h2
+          className="
+            mt-1
+            text-xl
+            font-bold
+            text-canwash-dark
+          "
+        >
+          {title}
+        </h2>
+
+      </div>
+
+
+      <div
+        className="
+          ml-auto
+          flex
+          items-center
+          gap-3
+          sm:gap-5
+        "
+      >
+
+        <button
+          type="button"
+
+          onClick={
+            onRefresh
+          }
+
+          className="
+            grid
+            h-11
+            w-11
+            place-items-center
+
+            rounded-xl
+
+            border
+            border-canwash-light
+
+            bg-white
+
+            text-canwash-dark
+
+            sm:flex
+            sm:w-auto
+            sm:gap-2
+            sm:px-4
+          "
+        >
+          <RefreshCw size={18} />
+
+          <span
+            className="
+              hidden
+              sm:inline
+            "
+          >
+            Actualizar
+          </span>
+        </button>
+
+
+        <div
+          className="
+            flex
+            items-center
+            gap-3
+          "
+        >
+
+          <div
+            className="
+              grid
+              h-11
+              w-11
+              place-items-center
+              rounded-full
+              bg-canwash-light
+              font-bold
+              text-canwash-dark
+            "
+          >
+            {user?.nombre
+              ?.charAt(0)
+              .toUpperCase() ||
+              "E"}
+          </div>
+
+
+          <div
+            className="
+              hidden
+              sm:block
+            "
+          >
+            <strong
+              className="
+                block
+                text-sm
+                text-canwash-dark
+              "
+            >
+              {user?.nombre ||
+                "Empleado"}
+            </strong>
+
+            <span
+              className="
+                text-xs
+                text-canwash-muted
+              "
+            >
+              {user?.rol ||
+                "EMPLEADO"}
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
   );
 }
 
@@ -1312,7 +990,7 @@ function SidebarButton({
    ESTADÍSTICA
 ========================================================= */
 
-function EmployeeStat({
+function StatCard({
   icon,
   title,
   value,
@@ -1322,7 +1000,6 @@ function EmployeeStat({
     <article
       className="
         flex
-        min-w-0
         items-center
         gap-4
 
@@ -1336,7 +1013,6 @@ function EmployeeStat({
         shadow-canwash-dark/5
       "
     >
-
       <div
         className="
           grid
@@ -1354,9 +1030,7 @@ function EmployeeStat({
         {icon}
       </div>
 
-
-      <div className="min-w-0">
-
+      <div>
         <span
           className="
             text-xs
@@ -1365,7 +1039,6 @@ function EmployeeStat({
         >
           {title}
         </span>
-
 
         <h2
           className="
@@ -1378,7 +1051,6 @@ function EmployeeStat({
           {value}
         </h2>
 
-
         <small
           className="
             text-xs
@@ -1387,9 +1059,7 @@ function EmployeeStat({
         >
           {text}
         </small>
-
       </div>
-
     </article>
   );
 }
@@ -1410,77 +1080,55 @@ function AppointmentSection({
     <section
       className="
         mt-5
-
         rounded-2xl
-
         bg-white
-
         p-5
-
         shadow-lg
         shadow-canwash-dark/5
-
         sm:p-7
       "
     >
 
-      {/* HEADER */}
+      <h2
+        className="
+          text-xl
+          font-bold
+          text-canwash-dark
+        "
+      >
+        {title}
+      </h2>
 
-      <div>
+      <p
+        className="
+          mt-1
+          text-sm
+          text-canwash-muted
+        "
+      >
+        {subtitle}
+      </p>
 
-        <h2
-          className="
-            text-xl
-            font-bold
-            text-canwash-dark
-          "
-        >
-          {title}
-        </h2>
-
-
-        <p
-          className="
-            mt-1
-            text-sm
-            text-canwash-muted
-          "
-        >
-          {subtitle}
-        </p>
-
-      </div>
-
-
-      {/* SIN CITAS */}
 
       {appointments.length === 0 ? (
-
         <EmptyState
           icon={
             <PawPrint size={45} />
           }
-
           title="No hay citas"
-
           text="No tienes servicios programados en esta sección."
         />
-
       ) : (
-
         <div
           className="
             mt-6
-
             flex
             flex-col
             gap-3
           "
         >
-
           {appointments.map(
             (appointment) => (
-
               <AppointmentCard
                 key={
                   appointment.id_cita
@@ -1504,10 +1152,8 @@ function AppointmentSection({
                   )
                 }
               />
-
             )
           )}
-
         </div>
       )}
 
@@ -1569,20 +1215,12 @@ function AppointmentCard({
 
         transition
 
-        hover:-translate-y-0.5
         hover:border-canwash-light
         hover:shadow-lg
-        hover:shadow-canwash-dark/5
-
-        focus:outline-none
-        focus-visible:ring-4
-        focus-visible:ring-canwash/20
 
         sm:flex-row
       "
     >
-
-      {/* FECHA */}
 
       <div
         className="
@@ -1602,18 +1240,12 @@ function AppointmentCard({
           sm:pr-5
         "
       >
-
         <Clock
           size={19}
-          className="
-            shrink-0
-            text-canwash
-          "
+          className="text-canwash"
         />
 
-
         <div>
-
           <strong
             className="
               block
@@ -1626,11 +1258,8 @@ function AppointmentCard({
             )}
           </strong>
 
-
           <span
             className="
-              mt-1
-              block
               text-[10px]
               text-canwash-muted
             "
@@ -1639,13 +1268,9 @@ function AppointmentCard({
               appointment.fecha
             )}
           </span>
-
         </div>
-
       </div>
 
-
-      {/* CONTENIDO */}
 
       <div
         className="
@@ -1654,8 +1279,6 @@ function AppointmentCard({
         "
       >
 
-        {/* HEADING */}
-
         <div
           className="
             flex
@@ -1663,13 +1286,10 @@ function AppointmentCard({
             gap-3
 
             sm:flex-row
-            sm:items-start
             sm:justify-between
           "
         >
-
           <div>
-
             <h3
               className="
                 text-lg
@@ -1677,37 +1297,27 @@ function AppointmentCard({
                 text-canwash-dark
               "
             >
-              {appointment.mascotas
+              {appointment
+                .mascotas
                 ?.nombre ||
                 "Mascota"}
             </h3>
 
-
             <span
               className="
-                mt-1
-                block
                 text-xs
                 text-canwash-muted
               "
             >
+              {appointment
+                .mascotas
+                ?.especie}
 
-              {appointment.mascotas
-                ?.especie ||
-                "Sin especie"}
-
-
-              {appointment.mascotas
+              {appointment
+                .mascotas
                 ?.raza &&
                 ` · ${appointment.mascotas.raza}`}
-
-
-              {appointment.mascotas
-                ?.tamano &&
-                ` · ${appointment.mascotas.tamano}`}
-
             </span>
-
           </div>
 
 
@@ -1716,172 +1326,107 @@ function AppointmentCard({
               appointment.estado
             }
           />
-
         </div>
 
-
-        {/* SERVICIOS */}
-
-        {appointment.detalle_cita
-          ?.length > 0 && (
-          <div
-            className="
-              mt-4
-
-              flex
-              flex-wrap
-              gap-2
-            "
-          >
-
-            {appointment.detalle_cita
-              .map((detail) => (
-
-                <span
-                  key={
-                    detail.id_detalle
-                  }
-
-                  className="
-                    flex
-                    items-center
-                    gap-1.5
-
-                    rounded-lg
-
-                    bg-white
-
-                    px-3
-                    py-2
-
-                    text-xs
-                    font-semibold
-                    text-canwash-dark
-                  "
-                >
-
-                  <Scissors
-                    size={14}
-                  />
-
-                  {detail.servicios
-                    ?.nombre ||
-                    "Servicio"}
-
-                </span>
-
-              ))}
-
-          </div>
-        )}
-
-
-        {/* INFORMACIÓN */}
 
         <div
           className="
             mt-4
-
             flex
             flex-wrap
-            gap-x-6
-            gap-y-3
+            gap-2
+          "
+        >
+          {appointment
+            .detalle_cita
+            ?.map((detail) => (
+              <span
+                key={
+                  detail.id_detalle
+                }
+                className="
+                  flex
+                  items-center
+                  gap-1
+                  rounded-lg
+                  bg-white
+                  px-3
+                  py-2
+                  text-xs
+                  font-semibold
+                  text-canwash-dark
+                "
+              >
+                <Scissors size={14} />
 
+                {detail
+                  .servicios
+                  ?.nombre ||
+                  "Servicio"}
+              </span>
+            ))}
+        </div>
+
+
+        <div
+          className="
+            mt-4
+            flex
+            flex-wrap
+            gap-4
             text-xs
             text-canwash-muted
           "
         >
-
-          <InformationItem
+          <Info
             icon={
               <User size={16} />
             }
-
             text={
-              appointment.clientes
+              appointment
+                .clientes
                 ?.nombre ||
-              "Sin cliente"
+              "Cliente"
             }
           />
 
-
-          <InformationItem
+          <Info
             icon={
               <Phone size={16} />
             }
-
             text={
-              appointment.clientes
+              appointment
+                .clientes
                 ?.telefono ||
               "Sin teléfono"
             }
           />
 
-
-          <InformationItem
+          <Info
             icon={
               <MapPin size={16} />
             }
-
             text={
               appointment.colonia ||
               "Sin colonia"
             }
           />
 
-
-          <InformationItem
+          <Info
             icon={
               <Banknote size={16} />
             }
-
             text={
               `Pagado: ${formatMoney(
                 totalPaid
               )}`
             }
           />
-
         </div>
 
       </div>
 
     </button>
-  );
-}
-
-
-/* =========================================================
-   INFORMATION ITEM
-========================================================= */
-
-function InformationItem({
-  icon,
-  text,
-}) {
-  return (
-    <div
-      className="
-        flex
-        items-center
-        gap-2
-      "
-    >
-
-      <span
-        className="
-          shrink-0
-          text-canwash
-        "
-      >
-        {icon}
-      </span>
-
-      <span>
-        {text}
-      </span>
-
-    </div>
   );
 }
 
@@ -1895,188 +1440,100 @@ function PaymentsView({
   appointments,
   totalPayments,
 }) {
-  const validatedPayments =
-    payments.filter(
-      (payment) =>
-        payment.estado ===
-        "VALIDADO"
-    ).length;
-
-
   return (
     <>
 
-      {/* =================================================
-          ENCABEZADO
-      ================================================== */}
-
       <section
         className="
-          relative
-          overflow-hidden
-
           rounded-3xl
 
           bg-gradient-to-br
           from-canwash-light
           to-canwash-cream
 
-          px-6
-          py-8
-
-          shadow-lg
-          shadow-canwash-dark/5
-
-          sm:px-8
-          sm:py-10
+          p-8
         "
       >
-
-        <div
+        <span
           className="
-            relative
-            z-10
-            max-w-xl
+            text-[11px]
+            font-bold
+            tracking-[0.2em]
+            text-canwash-dark
           "
         >
+          PAGOS
+        </span>
 
-          <span
-            className="
-              text-[11px]
-              font-bold
-              tracking-[0.2em]
-              text-canwash-dark
-            "
-          >
-            PAGOS
-          </span>
-
-
-          <h1
-            className="
-              mt-3
-
-              text-3xl
-              font-bold
-              tracking-tight
-              text-canwash-dark
-
-              sm:text-4xl
-            "
-          >
-            Historial de pagos
-          </h1>
-
-
-          <p
-            className="
-              mt-3
-
-              text-sm
-              leading-7
-              text-canwash-text
-
-              sm:text-base
-            "
-          >
-            Consulta los pagos asociados
-            a las citas que tienes
-            asignadas.
-          </p>
-
-        </div>
-
-
-        <CreditCard
+        <h1
           className="
-            absolute
-            -bottom-16
-            right-8
-
-            hidden
-            h-60
-            w-60
-
-            text-canwash/20
-
-            sm:block
+            mt-3
+            text-3xl
+            font-bold
+            text-canwash-dark
           "
-        />
+        >
+          Historial de pagos
+        </h1>
 
+        <p
+          className="
+            mt-3
+            text-sm
+            text-canwash-text
+          "
+        >
+          Consulta los pagos asociados
+          a tus citas.
+        </p>
       </section>
 
-
-      {/* =================================================
-          ESTADÍSTICAS
-      ================================================== */}
 
       <section
         className="
           mt-5
-
           grid
           grid-cols-1
           gap-4
-
           md:grid-cols-2
         "
       >
-
-        <EmployeeStat
-          icon={
-            <Banknote />
-          }
-
+        <StatCard
+          icon={<Banknote />}
           title="Pagos validados"
-
           value={
-            validatedPayments
+            payments.filter(
+              (payment) =>
+                payment.estado ===
+                "VALIDADO"
+            ).length
           }
-
           text="Registros validados"
         />
 
-
-        <EmployeeStat
-          icon={
-            <CreditCard />
-          }
-
+        <StatCard
+          icon={<CreditCard />}
           title="Total registrado"
-
           value={
             formatMoney(
               totalPayments
             )
           }
-
           text="Pagos validados"
         />
-
       </section>
 
-
-      {/* =================================================
-          MOVIMIENTOS
-      ================================================== */}
 
       <section
         className="
           mt-5
-
           rounded-2xl
-
           bg-white
-
-          p-5
-
+          p-6
           shadow-lg
           shadow-canwash-dark/5
-
-          sm:p-7
         "
       >
-
         <h2
           className="
             text-xl
@@ -2088,36 +1545,16 @@ function PaymentsView({
         </h2>
 
 
-        <p
-          className="
-            mt-1
-            text-sm
-            text-canwash-muted
-          "
-        >
-          Pagos correspondientes a
-          tus citas.
-        </p>
-
-
         {payments.length === 0 ? (
-
           <EmptyState
             icon={
-              <CreditCard
-                size={45}
-              />
+              <CreditCard size={45} />
             }
-
             title="No hay pagos"
-
-            text="Todavía no hay movimientos asociados a tus citas."
+            text="Todavía no hay movimientos."
           />
-
         ) : (
-
-          <div className="mt-6">
-
+          <div className="mt-5">
             {payments.map(
               (payment) => {
                 const appointment =
@@ -2127,17 +1564,14 @@ function PaymentsView({
                       payment.id_cita
                   );
 
-
                 return (
                   <PaymentRow
                     key={
                       payment.id_pago
                     }
-
                     payment={
                       payment
                     }
-
                     appointment={
                       appointment
                     }
@@ -2145,10 +1579,8 @@ function PaymentsView({
                 );
               }
             )}
-
           </div>
         )}
-
       </section>
 
     </>
@@ -2157,7 +1589,7 @@ function PaymentsView({
 
 
 /* =========================================================
-   FILA PAGO
+   PAGO
 ========================================================= */
 
 function PaymentRow({
@@ -2176,40 +1608,30 @@ function PaymentRow({
 
         py-4
 
-        first:border-t-0
+        first:border-0
 
-        md:grid-cols-[44px_minmax(0,1fr)_160px_140px]
+        md:grid-cols-[44px_1fr_150px_140px]
         md:items-center
-        md:gap-4
       "
     >
-
-      {/* ICONO */}
-
       <div
         className="
           grid
           h-11
           w-11
           place-items-center
-
           rounded-xl
-
           bg-canwash-cream
           text-canwash-dark
         "
       >
-        <Banknote size={21} />
+        <Banknote size={20} />
       </div>
 
 
-      {/* INFORMACIÓN */}
-
-      <div className="min-w-0">
-
+      <div>
         <strong
           className="
-            block
             text-sm
             text-canwash-dark
           "
@@ -2218,17 +1640,13 @@ function PaymentRow({
             "Pago"}
         </strong>
 
-
         <span
           className="
-            mt-1
             block
-            truncate
             text-xs
             text-canwash-muted
           "
         >
-
           {appointment
             ?.clientes
             ?.nombre ||
@@ -2240,25 +1658,18 @@ function PaymentRow({
             ?.mascotas
             ?.nombre ||
             "Mascota"}
-
         </span>
-
       </div>
 
-
-      {/* MÉTODO */}
 
       <div
         className="
           col-start-2
-
           md:col-auto
         "
       >
-
         <strong
           className="
-            block
             text-xs
             text-canwash-dark
           "
@@ -2267,12 +1678,10 @@ function PaymentRow({
             "Sin especificar"}
         </strong>
 
-
         <span
           className="
-            mt-1
             block
-            text-[11px]
+            text-xs
             text-canwash-muted
           "
         >
@@ -2280,26 +1689,19 @@ function PaymentRow({
             payment.fecha_pago
           )}
         </span>
-
       </div>
 
-
-      {/* MONTO */}
 
       <div
         className="
           col-start-2
-
           md:col-auto
           md:text-right
         "
       >
-
         <strong
           className="
-            mb-2
             block
-            text-base
             text-canwash-dark
           "
         >
@@ -2308,15 +1710,12 @@ function PaymentRow({
           )}
         </strong>
 
-
         <StatusBadge
           status={
             payment.estado
           }
         />
-
       </div>
-
     </article>
   );
 }
@@ -2331,10 +1730,6 @@ function AppointmentModal({
   payments,
   onClose,
 }) {
-  // =====================================================
-  // TOTAL SERVICIOS
-  // =====================================================
-
   const serviceTotal =
     appointment.detalle_cita
       ?.reduce(
@@ -2350,28 +1745,12 @@ function AppointmentModal({
       ) || 0;
 
 
-  // =====================================================
-  // VISITA
-  // =====================================================
-
-  const visitCost =
+  const total =
+    serviceTotal +
     Number(
       appointment.costo_visita || 0
     );
 
-
-  // =====================================================
-  // TOTAL
-  // =====================================================
-
-  const total =
-    serviceTotal +
-    visitCost;
-
-
-  // =====================================================
-  // PAGADO
-  // =====================================================
 
   const paid =
     payments
@@ -2390,87 +1769,47 @@ function AppointmentModal({
       );
 
 
-  // =====================================================
-  // PENDIENTE
-  // =====================================================
-
-  const pending =
-    Math.max(
-      total - paid,
-      0
-    );
-
-
   return (
     <div
-      onClick={
-        onClose
-      }
-
+      onClick={onClose}
       className="
         fixed
         inset-0
         z-[100]
-
         flex
         items-center
         justify-center
-
         bg-canwash-dark/50
-
         p-3
-
         backdrop-blur-sm
-
-        sm:p-6
       "
     >
-
       <div
         onClick={(e) =>
           e.stopPropagation()
         }
-
         className="
           max-h-[94dvh]
           w-full
           max-w-3xl
-
           overflow-y-auto
-
           rounded-2xl
-
           bg-white
-
-          p-5
-
+          p-6
           shadow-2xl
-          shadow-canwash-dark/20
-
-          sm:p-7
         "
       >
-
-        {/* =================================================
-            HEADER
-        ================================================== */}
 
         <div
           className="
             flex
-            items-start
             justify-between
-            gap-5
-
             border-b
             border-canwash-cream
-
             pb-5
           "
         >
-
           <div>
-
             <span
               className="
                 text-[10px]
@@ -2482,78 +1821,49 @@ function AppointmentModal({
               DETALLE DE CITA
             </span>
 
-
             <h2
               className="
-                mt-1
                 text-2xl
                 font-bold
                 text-canwash-dark
               "
             >
-              {appointment.mascotas
+              {appointment
+                .mascotas
                 ?.nombre ||
                 "Mascota"}
             </h2>
-
           </div>
-
 
           <button
             type="button"
-
-            onClick={
-              onClose
-            }
-
+            onClick={onClose}
             className="
               grid
               h-10
               w-10
-              shrink-0
               place-items-center
-
               rounded-xl
-
               bg-canwash-background
-              text-canwash-dark
-
-              transition
-
-              hover:bg-canwash-cream
-
-              focus:outline-none
-              focus-visible:ring-4
-              focus-visible:ring-canwash/20
             "
           >
             <X size={20} />
           </button>
-
         </div>
 
-
-        {/* =================================================
-            INFORMACIÓN GENERAL
-        ================================================== */}
 
         <div
           className="
             mt-5
-
             grid
             grid-cols-1
             gap-3
-
             sm:grid-cols-2
-
             lg:grid-cols-3
           "
         >
-
-          <ModalInformation
+          <ModalInfo
             title="Fecha"
-
             value={
               formatDate(
                 appointment.fecha
@@ -2561,10 +1871,8 @@ function AppointmentModal({
             }
           />
 
-
-          <ModalInformation
+          <ModalInfo
             title="Hora"
-
             value={
               formatTime(
                 appointment.hora
@@ -2572,278 +1880,169 @@ function AppointmentModal({
             }
           />
 
-
-          <ModalInformation
+          <ModalInfo
             title="Cliente"
-
             value={
-              appointment.clientes
+              appointment
+                .clientes
                 ?.nombre
             }
           />
 
-
-          <ModalInformation
+          <ModalInfo
             title="Teléfono"
-
             value={
-              appointment.clientes
+              appointment
+                .clientes
                 ?.telefono
             }
           />
 
-
-          <ModalInformation
+          <ModalInfo
             title="Colonia"
-
             value={
               appointment.colonia
             }
           />
 
-
-          <ModalInformation
+          <ModalInfo
             title="Estado"
-
             value={
               appointment.estado
             }
           />
-
         </div>
 
 
-        {/* =================================================
-            MASCOTA
-        ================================================== */}
+        <section className="mt-7">
+          <h3
+            className="
+              border-b
+              border-canwash-cream
+              pb-2
+              font-bold
+              text-canwash-dark
+            "
+          >
+            Servicios
+          </h3>
 
-        <ModalSection
-          title="Mascota"
-        >
+          {appointment
+            .detalle_cita
+            ?.map((detail) => (
+              <div
+                key={
+                  detail.id_detalle
+                }
+                className="
+                  flex
+                  justify-between
+                  border-b
+                  border-canwash-background
+                  py-3
+                  text-sm
+                "
+              >
+                <span>
+                  {detail
+                    .servicios
+                    ?.nombre ||
+                    "Servicio"}
+                </span>
 
-          <ModalText
-            label="Especie"
-
-            value={
-              appointment.mascotas
-                ?.especie
-            }
-          />
-
-
-          <ModalText
-            label="Raza"
-
-            value={
-              appointment.mascotas
-                ?.raza
-            }
-          />
-
-
-          <ModalText
-            label="Tamaño"
-
-            value={
-              appointment.mascotas
-                ?.tamano
-            }
-          />
-
-
-          {appointment.mascotas
-            ?.padecimientos && (
-            <ModalText
-              label="Padecimientos"
-
-              value={
-                appointment.mascotas
-                  .padecimientos
-              }
-            />
-          )}
+                <strong>
+                  {formatMoney(
+                    detail.precio
+                  )}
+                </strong>
+              </div>
+            ))}
+        </section>
 
 
-          {appointment.mascotas
-            ?.comportamiento && (
-            <ModalText
-              label="Comportamiento"
-
-              value={
-                appointment.mascotas
-                  .comportamiento
-              }
-            />
-          )}
-
-        </ModalSection>
-
-
-        {/* =================================================
-            SERVICIOS
-        ================================================== */}
-
-        <ModalSection
-          title="Servicios"
-        >
-
-          {appointment.detalle_cita
-            ?.length > 0 ? (
-
-            appointment.detalle_cita
-              .map((detail) => (
-
-                <div
-                  key={
-                    detail.id_detalle
-                  }
-
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    gap-4
-
-                    border-b
-                    border-canwash-background
-
-                    py-3
-
-                    text-sm
-                  "
-                >
-
-                  <span
-                    className="
-                      text-canwash-text
-                    "
-                  >
-                    {detail.servicios
-                      ?.nombre ||
-                      "Servicio"}
-                  </span>
-
-
-                  <strong
-                    className="
-                      shrink-0
-                      text-canwash-dark
-                    "
-                  >
-                    {formatMoney(
-                      detail.precio
-                    )}
-                  </strong>
-
-                </div>
-
-              ))
-
-          ) : (
-
-            <p
-              className="
-                text-sm
-                text-canwash-muted
-              "
-            >
-              Sin servicios registrados.
-            </p>
-
-          )}
-
-        </ModalSection>
-
-
-        {/* =================================================
-            PAGO
-        ================================================== */}
-
-        <ModalSection
-          title="Pago"
-        >
+        <section className="mt-7">
+          <h3
+            className="
+              border-b
+              border-canwash-cream
+              pb-2
+              font-bold
+              text-canwash-dark
+            "
+          >
+            Pago
+          </h3>
 
           <div
             className="
+              mt-3
               grid
               grid-cols-1
               gap-3
-
               sm:grid-cols-3
             "
           >
-
             <PaymentSummary
               title="Total"
-
               value={
-                formatMoney(
-                  total
-                )
+                formatMoney(total)
               }
             />
-
 
             <PaymentSummary
               title="Pagado"
-
               value={
-                formatMoney(
-                  paid
-                )
+                formatMoney(paid)
               }
             />
-
 
             <PaymentSummary
               title="Pendiente"
-
               value={
                 formatMoney(
-                  pending
+                  Math.max(
+                    total - paid,
+                    0
+                  )
                 )
               }
             />
-
           </div>
-
-        </ModalSection>
-
-
-        {/* =================================================
-            NOTAS
-        ================================================== */}
-
-        {appointment.notas && (
-          <ModalSection
-            title="Notas"
-          >
-
-            <p
-              className="
-                text-sm
-                leading-6
-                text-canwash-text
-              "
-            >
-              {appointment.notas}
-            </p>
-
-          </ModalSection>
-        )}
+        </section>
 
       </div>
-
     </div>
   );
 }
 
 
 /* =========================================================
-   MODAL INFORMATION
+   COMPONENTES PEQUEÑOS
 ========================================================= */
 
-function ModalInformation({
+function Info({
+  icon,
+  text,
+}) {
+  return (
+    <div
+      className="
+        flex
+        items-center
+        gap-2
+      "
+    >
+      <span className="text-canwash">
+        {icon}
+      </span>
+
+      {text}
+    </div>
+  );
+}
+
+
+function ModalInfo({
   title,
   value,
 }) {
@@ -2851,16 +2050,12 @@ function ModalInformation({
     <div
       className="
         rounded-xl
-
         bg-canwash-background
-
         p-4
       "
     >
-
       <span
         className="
-          block
           text-[10px]
           text-canwash-muted
         "
@@ -2868,12 +2063,10 @@ function ModalInformation({
         {title}
       </span>
 
-
       <strong
         className="
           mt-1
           block
-          break-words
           text-sm
           text-canwash-dark
         "
@@ -2881,90 +2074,10 @@ function ModalInformation({
         {value ||
           "Sin información"}
       </strong>
-
     </div>
   );
 }
 
-
-/* =========================================================
-   MODAL SECTION
-========================================================= */
-
-function ModalSection({
-  title,
-  children,
-}) {
-  return (
-    <section
-      className="
-        mt-7
-      "
-    >
-
-      <h3
-        className="
-          border-b
-          border-canwash-cream
-
-          pb-2
-
-          text-sm
-          font-bold
-          text-canwash-dark
-        "
-      >
-        {title}
-      </h3>
-
-
-      <div className="mt-3">
-        {children}
-      </div>
-
-    </section>
-  );
-}
-
-
-/* =========================================================
-   MODAL TEXT
-========================================================= */
-
-function ModalText({
-  label,
-  value,
-}) {
-  return (
-    <p
-      className="
-        my-2
-
-        text-sm
-        leading-6
-        text-canwash-text
-      "
-    >
-
-      <strong
-        className="
-          text-canwash-dark
-        "
-      >
-        {label}:
-      </strong>{" "}
-
-      {value ||
-        "Sin información"}
-
-    </p>
-  );
-}
-
-
-/* =========================================================
-   RESUMEN PAGO
-========================================================= */
 
 function PaymentSummary({
   title,
@@ -2974,23 +2087,18 @@ function PaymentSummary({
     <div
       className="
         rounded-xl
-
         bg-canwash-background
-
         p-4
       "
     >
-
       <span
         className="
-          block
           text-xs
           text-canwash-muted
         "
       >
         {title}
       </span>
-
 
       <strong
         className="
@@ -3002,15 +2110,10 @@ function PaymentSummary({
       >
         {value}
       </strong>
-
     </div>
   );
 }
 
-
-/* =========================================================
-   EMPTY STATE
-========================================================= */
 
 function EmptyState({
   icon,
@@ -3025,10 +2128,8 @@ function EmptyState({
         text-center
       "
     >
-
       <div
         className="
-          mx-auto
           flex
           justify-center
           text-canwash
@@ -3036,7 +2137,6 @@ function EmptyState({
       >
         {icon}
       </div>
-
 
       <h3
         className="
@@ -3048,40 +2148,103 @@ function EmptyState({
         {title}
       </h3>
 
-
       <p
         className="
-          mx-auto
           mt-2
-          max-w-md
-
           text-sm
-          leading-6
           text-canwash-muted
         "
       >
         {text}
       </p>
-
     </div>
   );
 }
 
 
-/* =========================================================
-   STATUS BADGE
-========================================================= */
+function ErrorMessage({
+  children,
+}) {
+  return (
+    <div
+      className="
+        mb-5
+        flex
+        items-center
+        gap-3
+        rounded-xl
+        border
+        border-red-200
+        bg-red-50
+        p-4
+        text-sm
+        text-red-700
+      "
+    >
+      <AlertCircle size={19} />
+
+      {children}
+    </div>
+  );
+}
+
+
+function LoadingScreen({
+  text,
+}) {
+  return (
+    <main
+      className="
+        grid
+        min-h-screen
+        place-items-center
+        bg-canwash-background
+      "
+    >
+      <div className="text-center">
+
+        <PawPrint
+          size={45}
+          className="
+            mx-auto
+            text-canwash
+          "
+        />
+
+        <h2
+          className="
+            mt-4
+            text-xl
+            font-bold
+            text-canwash-dark
+          "
+        >
+          Cargando Can Wash...
+        </h2>
+
+        <p
+          className="
+            mt-2
+            text-sm
+            text-canwash-muted
+          "
+        >
+          {text}
+        </p>
+      </div>
+    </main>
+  );
+}
+
 
 function StatusBadge({
   status,
 }) {
   const normalized =
-    status
-      ?.toUpperCase() ||
-    "";
+    status?.toUpperCase() || "";
 
 
-  let className =
+  let style =
     "bg-canwash-cream text-canwash-dark";
 
 
@@ -3089,7 +2252,7 @@ function StatusBadge({
     normalized === "CONFIRMADA" ||
     normalized === "VALIDADO"
   ) {
-    className =
+    style =
       "bg-emerald-100 text-emerald-700";
   }
 
@@ -3097,16 +2260,8 @@ function StatusBadge({
   if (
     normalized === "PENDIENTE"
   ) {
-    className =
+    style =
       "bg-amber-100 text-amber-700";
-  }
-
-
-  if (
-    normalized === "COMPLETADA"
-  ) {
-    className =
-      "bg-canwash-light text-canwash-dark";
   }
 
 
@@ -3114,7 +2269,7 @@ function StatusBadge({
     normalized === "CANCELADA" ||
     normalized === "RECHAZADO"
   ) {
-    className =
+    style =
       "bg-red-100 text-red-700";
   }
 
@@ -3124,18 +2279,12 @@ function StatusBadge({
       className={`
         inline-flex
         w-fit
-        items-center
-
         rounded-full
-
         px-3
         py-1.5
-
         text-[10px]
         font-bold
-        tracking-wide
-
-        ${className}
+        ${style}
       `}
     >
       {status ||
@@ -3146,7 +2295,7 @@ function StatusBadge({
 
 
 /* =========================================================
-   FORMATEAR DINERO
+   FORMATOS
 ========================================================= */
 
 function formatMoney(value) {
@@ -3164,15 +2313,10 @@ function formatMoney(value) {
 }
 
 
-/* =========================================================
-   FORMATEAR FECHA
-========================================================= */
-
 function formatDate(date) {
   if (!date) {
     return "";
   }
-
 
   return new Intl.DateTimeFormat(
     "es-MX",
@@ -3189,30 +2333,17 @@ function formatDate(date) {
 }
 
 
-/* =========================================================
-   FORMATEAR HORA
-========================================================= */
-
 function formatTime(time) {
-  if (!time) {
-    return "";
-  }
-
-
   return time
-    .toString()
-    .slice(0, 5);
+    ? time.toString().slice(0, 5)
+    : "";
 }
 
-
-
-//Fecha de pago
 
 function formatPaymentDate(date) {
   if (!date) {
     return "Sin fecha";
   }
-
 
   return new Intl.DateTimeFormat(
     "es-MX",
@@ -3220,8 +2351,6 @@ function formatPaymentDate(date) {
       day: "2-digit",
       month: "short",
       year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
     }
   ).format(
     new Date(date)
