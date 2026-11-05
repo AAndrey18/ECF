@@ -15,8 +15,8 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "./sidebar";
-import MobileMenu from "./mobileMenu";
+import Sidebar from "../utils/sidebar";
+import MobileMenu from "../utils/mobileMenu";
 import LocationMap from "./locationMap";
 
 
