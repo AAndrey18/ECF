@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   AlertCircle,
@@ -17,9 +21,10 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "./sidebar";
-import MobileMenu from "./mobileMenu";
-import Card from "./card";
+import Sidebar from "../utils/sidebar";
+import MobileMenu from "../utils/mobileMenu";
+import Card from "../utils/card";
+import LoadingScreen from "../utils/loadingScreen";
 
 
 function ClientDashboard({
@@ -37,20 +42,28 @@ function ClientDashboard({
   const [pets, setPets] =
     useState([]);
 
-  const [appointments, setAppointments] =
-    useState([]);
+  const [
+    appointments,
+    setAppointments,
+  ] = useState([]);
 
   const [view, setView] =
     useState("inicio");
 
-  const [showPetModal, setShowPetModal] =
-    useState(false);
+  const [
+    showPetModal,
+    setShowPetModal,
+  ] = useState(false);
 
-  const [selectedPet, setSelectedPet] =
-    useState(null);
+  const [
+    selectedPet,
+    setSelectedPet,
+  ] = useState(null);
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
+  const [
+    mobileMenuOpen,
+    setMobileMenuOpen,
+  ] = useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -73,15 +86,13 @@ function ClientDashboard({
       return;
     }
 
-
     setLoading(true);
     setError("");
 
-
     try {
-      // =================================================
+      // ===============================================
       // CLIENTE
-      // =================================================
+      // ===============================================
 
       const {
         data: clientData,
@@ -119,14 +130,13 @@ function ClientDashboard({
       if (!clientData) {
         setPets([]);
         setAppointments([]);
-
         return;
       }
 
 
-      // =================================================
+      // ===============================================
       // MASCOTAS
-      // =================================================
+      // ===============================================
 
       const {
         data: petsData,
@@ -168,9 +178,9 @@ function ClientDashboard({
       );
 
 
-      // =================================================
+      // ===============================================
       // CITAS
-      // =================================================
+      // ===============================================
 
       const {
         data: appointmentsData,
@@ -179,6 +189,7 @@ function ClientDashboard({
         .from("citas")
         .select(`
           id_cita,
+          id_cliente,
           id_mascota,
           fecha,
           hora,
@@ -237,10 +248,9 @@ function ClientDashboard({
 
     } catch (loadError) {
       console.error(
-        "Error cargando dashboard:",
+        "Error cargando dashboard del cliente:",
         loadError
       );
-
 
       setError(
         "No fue posible cargar tu información."
@@ -262,7 +272,7 @@ function ClientDashboard({
 
 
   // =====================================================
-  // CITAS
+  // DATOS CALCULADOS
   // =====================================================
 
   const today =
@@ -279,7 +289,10 @@ function ClientDashboard({
           appointment.estado !==
             "CANCELADA"
       );
-    }, [appointments, today]);
+    }, [
+      appointments,
+      today,
+    ]);
 
 
   const completedAppointments =
@@ -294,7 +307,9 @@ function ClientDashboard({
   // NAVEGACIÓN
   // =====================================================
 
-  const changeView = (newView) => {
+  const changeView = (
+    newView
+  ) => {
     setView(newView);
     setMobileMenuOpen(false);
   };
@@ -303,26 +318,25 @@ function ClientDashboard({
   const openProfile = () => {
     setMobileMenuOpen(false);
 
-    onProfile();
+    onProfile?.();
   };
 
 
   // =====================================================
-  // MASCOTA
+  // REGISTRAR MASCOTA
   // =====================================================
 
-  const openPetRegistration = () => {
-    setMobileMenuOpen(false);
+  const openPetRegistration =
+    () => {
+      setMobileMenuOpen(false);
 
+      if (!client) {
+        onProfile?.();
+        return;
+      }
 
-    if (!client) {
-      onProfile();
-      return;
-    }
-
-
-    setShowPetModal(true);
-  };
+      setShowPetModal(true);
+    };
 
 
   // =====================================================
@@ -332,7 +346,7 @@ function ClientDashboard({
   const handleLogout = () => {
     setMobileMenuOpen(false);
 
-    onLogout();
+    onLogout?.();
   };
 
 
@@ -341,11 +355,7 @@ function ClientDashboard({
   // =====================================================
 
   if (loading) {
-    return (
-      <LoadingScreen
-        text="Preparando tu información."
-      />
-    );
+    return <LoadingScreen />;
   }
 
 
@@ -360,9 +370,6 @@ function ClientDashboard({
         bg-canwash-background
       "
     >
-
-      {/* SIDEBAR */}
-
       <Sidebar
         user={user}
         view={view}
@@ -373,14 +380,13 @@ function ClientDashboard({
       />
 
 
-      {/* MOBILE MENU */}
-
       <MobileMenu
         isOpen={mobileMenuOpen}
 
         onToggle={() =>
           setMobileMenuOpen(
-            (current) => !current
+            (current) =>
+              !current
           )
         }
 
@@ -390,14 +396,9 @@ function ClientDashboard({
       />
 
 
-      {/* =================================================
-          CONTENIDO
-      ================================================== */}
-
       <main
         className="
           min-h-screen
-
           px-4
           pb-24
 
@@ -411,7 +412,6 @@ function ClientDashboard({
           lg:px-9
         "
       >
-
         <Topbar
           user={user}
           title={
@@ -428,20 +428,16 @@ function ClientDashboard({
         )}
 
 
-        {/* =================================================
+        {/* =============================================
             INICIO
-        ================================================== */}
+        ============================================== */}
 
         {view === "inicio" && (
           <>
-
-            {/* BIENVENIDA */}
-
             <section
               className="
                 relative
                 overflow-hidden
-
                 rounded-3xl
 
                 bg-gradient-to-br
@@ -451,13 +447,15 @@ function ClientDashboard({
                 px-6
                 py-8
 
+                shadow-lg
+                shadow-canwash-dark/5
+
                 backdrop-blur-sm
 
                 sm:px-8
                 sm:py-10
               "
             >
-
               <div
                 className="
                   relative
@@ -465,7 +463,6 @@ function ClientDashboard({
                   max-w-xl
                 "
               >
-
                 <span
                   className="
                     text-[11px]
@@ -503,39 +500,31 @@ function ClientDashboard({
                     sm:text-base
                   "
                 >
-                  Registra a tus mascotas
-                  y consulta la información
-                  de sus próximos servicios.
+                  Registra a tus mascotas,
+                  consulta sus citas y
+                  administra la información
+                  de tus servicios.
                 </p>
 
 
                 <button
                   type="button"
-
                   onClick={
                     openPetRegistration
                   }
-
                   className="
                     mt-6
-
                     flex
                     items-center
                     gap-2
-
                     rounded-xl
-
                     bg-canwash-dark
-
                     px-5
                     py-3
-
                     text-sm
                     font-semibold
                     text-white
-
                     transition
-
                     hover:-translate-y-0.5
                     hover:bg-canwash
                   "
@@ -544,7 +533,6 @@ function ClientDashboard({
 
                   Registrar mascota
                 </button>
-
               </div>
 
 
@@ -553,38 +541,28 @@ function ClientDashboard({
                   absolute
                   -bottom-16
                   right-8
-
                   hidden
                   h-60
                   w-60
-
                   text-canwash/20
-
                   sm:block
                 "
               />
-
             </section>
 
 
-            {/* =============================================
-                TARJETAS REUTILIZABLES
-            ============================================== */}
+            {/* CARDS */}
 
             <section
               className="
                 mt-5
-
                 grid
                 grid-cols-1
                 gap-4
-
                 sm:grid-cols-2
-
                 xl:grid-cols-3
               "
             >
-
               <Card
                 opacity={80}
                 icon={<Dog />}
@@ -618,39 +596,28 @@ function ClientDashboard({
                 }
                 text="Citas completadas"
               />
-
             </section>
 
 
-            {/* =============================================
-                PERFIL INCOMPLETO
-            ============================================== */}
+            {/* PERFIL INCOMPLETO */}
 
             {!client && (
               <section
                 className="
                   mt-5
-
                   flex
                   flex-col
                   gap-4
-
                   rounded-2xl
-
                   border
-                  border-amber-200/70
-
+                  border-amber-200
                   bg-amber-50/80
-
                   p-5
-
                   backdrop-blur-sm
-
                   sm:flex-row
                   sm:items-center
                 "
               >
-
                 <AlertCircle
                   size={25}
                   className="
@@ -661,7 +628,6 @@ function ClientDashboard({
 
 
                 <div className="flex-1">
-
                   <h3
                     className="
                       font-bold
@@ -670,7 +636,6 @@ function ClientDashboard({
                   >
                     Completa tu perfil
                   </h3>
-
 
                   <p
                     className="
@@ -682,40 +647,30 @@ function ClientDashboard({
                   >
                     Antes de registrar una
                     mascota necesitamos
-                    completar tus datos de
-                    cliente.
+                    completar tus datos.
                   </p>
-
                 </div>
 
 
                 <button
                   type="button"
-
                   onClick={
                     openProfile
                   }
-
                   className="
                     rounded-xl
-
                     bg-canwash-dark
-
                     px-4
                     py-2.5
-
                     text-sm
                     font-semibold
                     text-white
-
                     transition
-
                     hover:bg-canwash
                   "
                 >
                   Completar perfil
                 </button>
-
               </section>
             )}
 
@@ -740,14 +695,13 @@ function ClientDashboard({
                 }
               />
             )}
-
           </>
         )}
 
 
-        {/* =================================================
+        {/* =============================================
             MASCOTAS
-        ================================================== */}
+        ============================================== */}
 
         {view === "mascotas" && (
           <PetSection
@@ -762,9 +716,9 @@ function ClientDashboard({
         )}
 
 
-        {/* =================================================
+        {/* =============================================
             CITAS
-        ================================================== */}
+        ============================================== */}
 
         {view === "citas" && (
           <AppointmentsSection
@@ -774,13 +728,12 @@ function ClientDashboard({
             }
           />
         )}
-
       </main>
 
 
-      {/* =================================================
-          REGISTRAR MASCOTA
-      ================================================== */}
+      {/* ===============================================
+          MODAL REGISTRAR MASCOTA
+      ================================================ */}
 
       {showPetModal && client && (
         <PetModal
@@ -792,16 +745,15 @@ function ClientDashboard({
 
           onSaved={() => {
             setShowPetModal(false);
-
             loadData();
           }}
         />
       )}
 
 
-      {/* =================================================
+      {/* ===============================================
           DETALLE MASCOTA
-      ================================================== */}
+      ================================================ */}
 
       {selectedPet && (
         <PetDetailsModal
@@ -812,7 +764,6 @@ function ClientDashboard({
           }
         />
       )}
-
     </div>
   );
 }
@@ -838,13 +789,7 @@ function Topbar({
         py-3
       "
     >
-
-      <div
-        className="
-          hidden
-          sm:block
-        "
-      >
+      <div className="hidden sm:block">
         <span
           className="
             text-[10px]
@@ -878,32 +823,22 @@ function Topbar({
           sm:gap-5
         "
       >
-
         <button
           type="button"
           onClick={onRefresh}
-
           className="
             grid
             h-11
             w-11
             place-items-center
-
             rounded-xl
-
             border
             border-canwash-light
-
             bg-white/80
-
             text-canwash-dark
-
             backdrop-blur-sm
-
             transition
-
             hover:bg-white
-
             sm:flex
             sm:w-auto
             sm:gap-2
@@ -912,12 +847,7 @@ function Topbar({
         >
           <RefreshCw size={18} />
 
-          <span
-            className="
-              hidden
-              sm:inline
-            "
-          >
+          <span className="hidden sm:inline">
             Actualizar
           </span>
         </button>
@@ -930,22 +860,16 @@ function Topbar({
             gap-3
           "
         >
-
           <div
             className="
               grid
               h-11
               w-11
               place-items-center
-
               rounded-full
-
               bg-canwash-light/80
-
               font-bold
               text-canwash-dark
-
-              backdrop-blur-sm
             "
           >
             {user?.nombre
@@ -953,13 +877,7 @@ function Topbar({
               .toUpperCase() || "C"}
           </div>
 
-
-          <div
-            className="
-              hidden
-              sm:block
-            "
-          >
+          <div className="hidden sm:block">
             <strong
               className="
                 block
@@ -982,11 +900,8 @@ function Topbar({
               CLIENTE
             </span>
           </div>
-
         </div>
-
       </div>
-
     </header>
   );
 }
@@ -1005,34 +920,25 @@ function PetSection({
     <section
       className="
         mt-5
-
         rounded-2xl
-
         bg-white/80
-
         p-5
-
         shadow-lg
         shadow-canwash-dark/5
-
         backdrop-blur-sm
-
         sm:p-7
       "
     >
-
       <div
         className="
           flex
           flex-col
           gap-4
-
           sm:flex-row
           sm:items-center
           sm:justify-between
         "
       >
-
         <div>
           <h2
             className="
@@ -1060,34 +966,25 @@ function PetSection({
         <button
           type="button"
           onClick={onAdd}
-
           className="
             flex
             items-center
             justify-center
             gap-2
-
             rounded-xl
-
             bg-canwash
-
             px-4
             py-3
-
             text-sm
             font-semibold
             text-white
-
             transition
-
             hover:bg-[#7899A4]
           "
         >
           <Plus size={18} />
-
           Registrar mascota
         </button>
-
       </div>
 
 
@@ -1103,11 +1000,9 @@ function PetSection({
         <div
           className="
             mt-6
-
             grid
             grid-cols-1
             gap-4
-
             sm:grid-cols-2
             xl:grid-cols-3
           "
@@ -1123,7 +1018,6 @@ function PetSection({
           ))}
         </div>
       )}
-
     </section>
   );
 }
@@ -1137,47 +1031,32 @@ function PetCard({
     <button
       type="button"
       onClick={onClick}
-
       className="
         group
-
         w-full
-
         rounded-2xl
-
         border
         border-white/50
-
         bg-canwash-background/70
-
         p-5
-
         text-left
-
         backdrop-blur-sm
-
         transition
-
         hover:-translate-y-1
         hover:bg-canwash-background/90
         hover:shadow-lg
       "
     >
-
       <div
         className="
           grid
           h-14
           w-14
           place-items-center
-
           rounded-xl
-
           bg-canwash-light/80
           text-canwash-dark
-
           transition
-
           group-hover:bg-canwash
           group-hover:text-white
         "
@@ -1200,7 +1079,6 @@ function PetCard({
       >
         {pet.nombre}
       </h3>
-
 
       <span
         className="
@@ -1274,7 +1152,6 @@ function PetCard({
           {pet.padecimientos}
         </div>
       )}
-
     </button>
   );
 }
@@ -1330,18 +1207,12 @@ function AppointmentsSection({
     <section
       className="
         mt-5
-
         rounded-2xl
-
         bg-white/80
-
         p-5
-
         shadow-lg
         shadow-canwash-dark/5
-
         backdrop-blur-sm
-
         sm:p-7
       "
     >
@@ -1398,7 +1269,6 @@ function AppointmentsSection({
           )}
         </div>
       )}
-
     </section>
   );
 }
@@ -1413,33 +1283,23 @@ function AppointmentCard({
         flex
         flex-col
         gap-4
-
         rounded-2xl
-
         border
         border-white/50
-
         bg-canwash-background/70
-
         p-5
-
         backdrop-blur-sm
-
         sm:flex-row
       "
     >
-
       <div
         className="
           flex
           items-center
           gap-3
-
           border-b
           border-canwash-cream
-
           pb-4
-
           sm:min-w-40
           sm:border-b-0
           sm:border-r
@@ -1485,13 +1345,7 @@ function AppointmentCard({
       </div>
 
 
-      <div
-        className="
-          min-w-0
-          flex-1
-        "
-      >
-
+      <div className="min-w-0 flex-1">
         <div
           className="
             flex
@@ -1561,14 +1415,10 @@ function AppointmentCard({
                     flex
                     items-center
                     gap-1
-
                     rounded-lg
-
                     bg-white/70
-
                     px-3
                     py-2
-
                     text-xs
                     font-semibold
                     text-canwash-dark
@@ -1606,16 +1456,14 @@ function AppointmentCard({
             appointment.colonia ||
             "Dirección por confirmar"}
         </div>
-
       </div>
-
     </article>
   );
 }
 
 
 /* =========================================================
-   MODAL MASCOTA
+   REGISTRAR MASCOTA
 ========================================================= */
 
 function PetModal({
@@ -1634,7 +1482,6 @@ function PetModal({
       comportamiento: "",
       notas: "",
     });
-
 
   const [saving, setSaving] =
     useState(false);
@@ -1657,7 +1504,6 @@ function PetModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-
     if (!form.nombre.trim()) {
       setFormError(
         "Ingresa el nombre de tu mascota."
@@ -1666,10 +1512,8 @@ function PetModal({
       return;
     }
 
-
     setSaving(true);
     setFormError("");
-
 
     try {
       const {
@@ -1726,6 +1570,7 @@ function PetModal({
 
     } catch (saveError) {
       console.error(
+        "Error registrando mascota:",
         saveError
       );
 
@@ -1743,7 +1588,6 @@ function PetModal({
     <ModalBackground
       onClose={onClose}
     >
-
       <ModalHeader
         label="CAN WASH"
         title="Registrar mascota"
@@ -1751,12 +1595,7 @@ function PetModal({
       />
 
 
-      <form
-        onSubmit={
-          handleSubmit
-        }
-      >
-
+      <form onSubmit={handleSubmit}>
         <div
           className="
             grid
@@ -1765,7 +1604,6 @@ function PetModal({
             sm:grid-cols-2
           "
         >
-
           <div>
             <FormLabel>
               Nombre *
@@ -1861,7 +1699,6 @@ function PetModal({
               className={inputClasses}
             />
           </div>
-
         </div>
 
 
@@ -1923,9 +1760,7 @@ function PetModal({
           text="Registrar mascota"
           loadingText="Registrando..."
         />
-
       </form>
-
     </ModalBackground>
   );
 }
@@ -1943,7 +1778,6 @@ function PetDetailsModal({
     <ModalBackground
       onClose={onClose}
     >
-
       <ModalHeader
         label="MASCOTA"
         title={pet.nombre}
@@ -1955,14 +1789,11 @@ function PetDetailsModal({
         className="
           mx-auto
           mt-6
-
           grid
           h-20
           w-20
           place-items-center
-
           rounded-2xl
-
           bg-canwash-light
           text-canwash-dark
         "
@@ -2039,62 +1870,14 @@ function PetDetailsModal({
           "Sin observaciones."
         }
       />
-
     </ModalBackground>
   );
 }
 
 
 /* =========================================================
-   COMPONENTES AUXILIARES
+   UI AUXILIAR
 ========================================================= */
-
-function LoadingScreen({
-  text,
-}) {
-  return (
-    <main
-      className="
-        grid
-        min-h-screen
-        place-items-center
-        bg-canwash-background
-      "
-    >
-      <div className="text-center">
-        <PawPrint
-          size={45}
-          className="
-            mx-auto
-            text-canwash
-          "
-        />
-
-        <h2
-          className="
-            mt-4
-            text-xl
-            font-bold
-            text-canwash-dark
-          "
-        >
-          Cargando Can Wash...
-        </h2>
-
-        <p
-          className="
-            mt-2
-            text-sm
-            text-canwash-muted
-          "
-        >
-          {text}
-        </p>
-      </div>
-    </main>
-  );
-}
-
 
 function ErrorMessage({
   children,
@@ -2113,11 +1896,9 @@ function ErrorMessage({
         p-4
         text-sm
         text-red-700
-        backdrop-blur-sm
       "
     >
       <AlertCircle size={19} />
-
       {children}
     </div>
   );
@@ -2182,15 +1963,11 @@ function ModalBackground({
         fixed
         inset-0
         z-[100]
-
         flex
         items-center
         justify-center
-
         bg-canwash-dark/50
-
         p-3
-
         backdrop-blur-sm
       "
     >
@@ -2202,19 +1979,11 @@ function ModalBackground({
           max-h-[94dvh]
           w-full
           max-w-2xl
-
           overflow-y-auto
-
           rounded-2xl
-
           bg-white/95
-
           p-5
-
           shadow-2xl
-
-          backdrop-blur-md
-
           sm:p-7
         "
       >
@@ -2236,10 +2005,8 @@ function ModalHeader({
         flex
         justify-between
         gap-5
-
         border-b
         border-canwash-cream
-
         pb-5
       "
     >
@@ -2441,18 +2208,16 @@ function StatusBadge({
   const normalized =
     status?.toUpperCase() || "";
 
-
   let style =
     "bg-canwash-cream text-canwash-dark";
 
-
   if (
-    normalized === "CONFIRMADA"
+    normalized === "CONFIRMADA" ||
+    normalized === "COMPLETADA"
   ) {
     style =
       "bg-emerald-100 text-emerald-700";
   }
-
 
   if (
     normalized === "PENDIENTE"
@@ -2461,7 +2226,6 @@ function StatusBadge({
       "bg-amber-100 text-amber-700";
   }
 
-
   if (
     normalized === "CANCELADA"
   ) {
@@ -2469,10 +2233,10 @@ function StatusBadge({
       "bg-red-100 text-red-700";
   }
 
-
   return (
     <span
       className={`
+        inline-flex
         w-fit
         rounded-full
         px-3
@@ -2541,7 +2305,6 @@ const inputClasses = `
   text-sm
   text-canwash-text
   outline-none
-  backdrop-blur-sm
   focus:border-canwash
   focus:ring-4
   focus:ring-canwash/20
@@ -2561,7 +2324,6 @@ const textareaClasses = `
   text-sm
   text-canwash-text
   outline-none
-  backdrop-blur-sm
   focus:border-canwash
   focus:ring-4
   focus:ring-canwash/20

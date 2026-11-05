@@ -12,8 +12,8 @@ import EmployeeDashboard from "./components/employeeDashboard";
 
 import Profile from "./components/profile";
 
-import LoadingScreen from "./components/auth/loadingScreen";
-import RoleError from "./components/errors/roleError";
+import LoadingScreen from "./utils/loadingScreen";
+import RoleError from "./utils/roleError";
 
 import useAuth from "./hooks/useAuth";
 

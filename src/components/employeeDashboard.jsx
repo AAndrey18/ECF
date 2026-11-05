@@ -23,9 +23,10 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "./sidebar";
-import MobileMenu from "./mobileMenu";
-import Card from "./card";
+import Sidebar from "../utils/sidebar";
+import MobileMenu from "../utils/mobileMenu";
+import Card from "../utils/card";
+import LoadingScreen from "../utils/loadingScreen";
 
 
 function EmployeeDashboard({
@@ -37,11 +38,15 @@ function EmployeeDashboard({
   // ESTADOS
   // =====================================================
 
-  const [appointments, setAppointments] =
-    useState([]);
+  const [
+    appointments,
+    setAppointments,
+  ] = useState([]);
 
-  const [payments, setPayments] =
-    useState([]);
+  const [
+    payments,
+    setPayments,
+  ] = useState([]);
 
   const [
     selectedAppointment,
@@ -83,71 +88,89 @@ function EmployeeDashboard({
 
 
     try {
-      // =================================================
+      // ===============================================
       // CITAS
-      // =================================================
+      // ===============================================
+
+      let appointmentsQuery =
+        supabase
+          .from("citas")
+          .select(`
+            id_cita,
+            id_usuario,
+            fecha,
+            hora,
+            direccion_servicio,
+            colonia,
+            costo_visita,
+            estado,
+            notas,
+
+            clientes (
+              id_cliente,
+              nombre,
+              telefono,
+              email
+            ),
+
+            mascotas (
+              id_mascota,
+              nombre,
+              especie,
+              raza,
+              tamano,
+              padecimientos,
+              comportamiento,
+              notas
+            ),
+
+            detalle_cita (
+              id_detalle,
+              cantidad,
+              precio,
+
+              servicios (
+                id_servicio,
+                nombre,
+                descripcion
+              )
+            )
+          `);
+
+
+      /*
+        ADMIN puede consultar todas las citas.
+        EMPLEADO solamente las asignadas.
+      */
+
+      if (
+        user.rol !== "ADMIN"
+      ) {
+        appointmentsQuery =
+          appointmentsQuery.eq(
+            "id_usuario",
+            user.id_usuario
+          );
+      }
+
 
       const {
         data: appointmentData,
         error: appointmentError,
-      } = await supabase
-        .from("citas")
-        .select(`
-          id_cita,
-          fecha,
-          hora,
-          direccion_servicio,
-          colonia,
-          costo_visita,
-          estado,
-          notas,
-
-          clientes (
-            id_cliente,
-            nombre,
-            telefono,
-            email
-          ),
-
-          mascotas (
-            id_mascota,
-            nombre,
-            especie,
-            raza,
-            tamano,
-            padecimientos,
-            comportamiento,
-            notas
-          ),
-
-          detalle_cita (
-            id_detalle,
-            cantidad,
-            precio,
-
-            servicios (
-              id_servicio,
-              nombre,
-              descripcion
-            )
+      } =
+        await appointmentsQuery
+          .order(
+            "fecha",
+            {
+              ascending: true,
+            }
           )
-        `)
-        .eq(
-          "id_usuario",
-          user.id_usuario
-        )
-        .order(
-          "fecha",
-          {
-            ascending: true,
-          }
-        )
-        .order(
-          "hora",
-          {
-            ascending: true,
-          }
-        );
+          .order(
+            "hora",
+            {
+              ascending: true,
+            }
+          );
 
 
       if (appointmentError) {
@@ -164,9 +187,9 @@ function EmployeeDashboard({
       );
 
 
-      // =================================================
+      // ===============================================
       // PAGOS
-      // =================================================
+      // ===============================================
 
       const appointmentIds =
         appointmentResult.map(
@@ -179,7 +202,6 @@ function EmployeeDashboard({
         appointmentIds.length === 0
       ) {
         setPayments([]);
-
         return;
       }
 
@@ -227,7 +249,6 @@ function EmployeeDashboard({
         loadError
       );
 
-
       setError(
         "No fue posible cargar la información."
       );
@@ -239,16 +260,19 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // CARGA
+  // CARGA INICIAL
   // =====================================================
 
   useEffect(() => {
     loadData();
-  }, [user?.id_usuario]);
+  }, [
+    user?.id_usuario,
+    user?.rol,
+  ]);
 
 
   // =====================================================
-  // CITAS
+  // ESTADÍSTICAS
   // =====================================================
 
   const today =
@@ -263,7 +287,10 @@ function EmployeeDashboard({
         (appointment) =>
           appointment.fecha === today
       );
-    }, [appointments, today]);
+    }, [
+      appointments,
+      today,
+    ]);
 
 
   const upcomingAppointments =
@@ -274,7 +301,10 @@ function EmployeeDashboard({
           appointment.estado !==
             "CANCELADA"
       );
-    }, [appointments, today]);
+    }, [
+      appointments,
+      today,
+    ]);
 
 
   const confirmedAppointments =
@@ -292,10 +322,6 @@ function EmployeeDashboard({
         "PENDIENTE"
     ).length;
 
-
-  // =====================================================
-  // PAGOS
-  // =====================================================
 
   const totalPayments =
     payments
@@ -318,24 +344,23 @@ function EmployeeDashboard({
   // NAVEGACIÓN
   // =====================================================
 
-  const changeView = (newView) => {
+  const changeView = (
+    newView
+  ) => {
     setView(newView);
-
     setMobileMenuOpen(false);
   };
 
 
   const openProfile = () => {
     setMobileMenuOpen(false);
-
-    onProfile();
+    onProfile?.();
   };
 
 
   const handleLogout = () => {
     setMobileMenuOpen(false);
-
-    onLogout();
+    onLogout?.();
   };
 
 
@@ -344,11 +369,7 @@ function EmployeeDashboard({
   // =====================================================
 
   if (loading) {
-    return (
-      <LoadingScreen
-        text="Consultando tus citas."
-      />
-    );
+    return <LoadingScreen />;
   }
 
 
@@ -363,9 +384,6 @@ function EmployeeDashboard({
         bg-canwash-background
       "
     >
-
-      {/* SIDEBAR */}
-
       <Sidebar
         user={user}
         view={view}
@@ -375,8 +393,6 @@ function EmployeeDashboard({
         onLogout={handleLogout}
       />
 
-
-      {/* MOBILE */}
 
       <MobileMenu
         isOpen={mobileMenuOpen}
@@ -394,14 +410,9 @@ function EmployeeDashboard({
       />
 
 
-      {/* =================================================
-          CONTENIDO
-      ================================================== */}
-
       <main
         className="
           min-h-screen
-
           px-4
           pb-24
 
@@ -415,7 +426,6 @@ function EmployeeDashboard({
           lg:px-9
         "
       >
-
         <Topbar
           user={user}
 
@@ -424,7 +434,9 @@ function EmployeeDashboard({
               ? "Pagos"
               : view === "empleados"
                 ? "Empleados"
-                : "Mis citas"
+                : user.rol === "ADMIN"
+                  ? "Citas"
+                  : "Mis citas"
           }
 
           onRefresh={
@@ -440,20 +452,16 @@ function EmployeeDashboard({
         )}
 
 
-        {/* =================================================
+        {/* =============================================
             CITAS
-        ================================================== */}
+        ============================================== */}
 
         {view === "citas" && (
           <>
-
-            {/* BIENVENIDA */}
-
             <section
               className="
                 relative
                 overflow-hidden
-
                 rounded-3xl
 
                 bg-gradient-to-br
@@ -469,7 +477,6 @@ function EmployeeDashboard({
                 sm:py-10
               "
             >
-
               <div
                 className="
                   relative
@@ -477,7 +484,6 @@ function EmployeeDashboard({
                   max-w-xl
                 "
               >
-
                 <span
                   className="
                     text-[11px]
@@ -486,7 +492,9 @@ function EmployeeDashboard({
                     text-canwash-dark
                   "
                 >
-                  TU JORNADA
+                  {user.rol === "ADMIN"
+                    ? "ADMINISTRACIÓN"
+                    : "TU JORNADA"}
                 </span>
 
 
@@ -515,12 +523,10 @@ function EmployeeDashboard({
                     sm:text-base
                   "
                 >
-                  Consulta tus citas,
-                  horarios, clientes,
-                  mascotas y servicios
-                  programados.
+                  {user.rol === "ADMIN"
+                    ? "Consulta las citas y la actividad general de Can Wash."
+                    : "Consulta tus citas, horarios, clientes, mascotas y servicios programados."}
                 </p>
-
               </div>
 
 
@@ -529,38 +535,28 @@ function EmployeeDashboard({
                   absolute
                   -bottom-16
                   right-8
-
                   hidden
                   h-60
                   w-60
-
                   text-canwash/20
-
                   sm:block
                 "
               />
-
             </section>
 
 
-            {/* =============================================
-                CARDS
-            ============================================== */}
+            {/* CARDS */}
 
             <section
               className="
                 mt-5
-
                 grid
                 grid-cols-1
                 gap-4
-
                 sm:grid-cols-2
-
                 xl:grid-cols-4
               "
             >
-
               <Card
                 opacity={80}
                 icon={
@@ -572,7 +568,6 @@ function EmployeeDashboard({
                 }
                 text="Servicios programados"
               />
-
 
               <Card
                 opacity={80}
@@ -586,7 +581,6 @@ function EmployeeDashboard({
                 text="Citas confirmadas"
               />
 
-
               <Card
                 opacity={80}
                 icon={
@@ -599,7 +593,6 @@ function EmployeeDashboard({
                 text="Por confirmar"
               />
 
-
               <Card
                 opacity={80}
                 icon={
@@ -611,15 +604,12 @@ function EmployeeDashboard({
                 }
                 text="Desde hoy"
               />
-
             </section>
 
 
-            {/* CITAS HOY */}
-
             <AppointmentSection
               title="Citas de hoy"
-              subtitle="Servicios programados para tu jornada."
+              subtitle="Servicios programados para hoy."
               appointments={
                 todayAppointments
               }
@@ -632,11 +622,9 @@ function EmployeeDashboard({
             />
 
 
-            {/* PRÓXIMAS */}
-
             <AppointmentSection
               title="Próximas citas"
-              subtitle="Servicios que tienes asignados."
+              subtitle="Servicios programados próximamente."
               appointments={
                 upcomingAppointments
               }
@@ -647,14 +635,13 @@ function EmployeeDashboard({
                 setSelectedAppointment
               }
             />
-
           </>
         )}
 
 
-        {/* =================================================
+        {/* =============================================
             PAGOS
-        ================================================== */}
+        ============================================== */}
 
         {view === "pagos" && (
           <PaymentsView
@@ -669,9 +656,9 @@ function EmployeeDashboard({
         )}
 
 
-        {/* =================================================
-            ADMIN
-        ================================================== */}
+        {/* =============================================
+            ADMIN - EMPLEADOS
+        ============================================== */}
 
         {view === "empleados" &&
           user?.rol === "ADMIN" && (
@@ -702,11 +689,8 @@ function EmployeeDashboard({
             </p>
           </Card>
         )}
-
       </main>
 
-
-      {/* MODAL CITA */}
 
       {selectedAppointment && (
         <AppointmentModal
@@ -727,7 +711,6 @@ function EmployeeDashboard({
           }
         />
       )}
-
     </div>
   );
 }
@@ -753,13 +736,7 @@ function Topbar({
         py-3
       "
     >
-
-      <div
-        className="
-          hidden
-          sm:block
-        "
-      >
+      <div className="hidden sm:block">
         <span
           className="
             text-[10px]
@@ -793,28 +770,22 @@ function Topbar({
           sm:gap-5
         "
       >
-
         <button
           type="button"
           onClick={onRefresh}
-
           className="
             grid
             h-11
             w-11
             place-items-center
-
             rounded-xl
-
             border
             border-canwash-light
-
             bg-white/80
-
             text-canwash-dark
-
             backdrop-blur-sm
-
+            transition
+            hover:bg-white
             sm:flex
             sm:w-auto
             sm:gap-2
@@ -823,12 +794,7 @@ function Topbar({
         >
           <RefreshCw size={18} />
 
-          <span
-            className="
-              hidden
-              sm:inline
-            "
-          >
+          <span className="hidden sm:inline">
             Actualizar
           </span>
         </button>
@@ -841,18 +807,14 @@ function Topbar({
             gap-3
           "
         >
-
           <div
             className="
               grid
               h-11
               w-11
               place-items-center
-
               rounded-full
-
               bg-canwash-light/80
-
               font-bold
               text-canwash-dark
             "
@@ -862,16 +824,12 @@ function Topbar({
               .toUpperCase() || "E"}
           </div>
 
-
-          <div
-            className="
-              hidden
-              sm:block
-            "
-          >
+          <div className="hidden sm:block">
             <strong
               className="
                 block
+                max-w-44
+                truncate
                 text-sm
                 text-canwash-dark
               "
@@ -890,11 +848,8 @@ function Topbar({
                 "EMPLEADO"}
             </span>
           </div>
-
         </div>
-
       </div>
-
     </header>
   );
 }
@@ -915,22 +870,15 @@ function AppointmentSection({
     <section
       className="
         mt-5
-
         rounded-2xl
-
         bg-white/80
-
         p-5
-
         shadow-lg
         shadow-canwash-dark/5
-
         backdrop-blur-sm
-
         sm:p-7
       "
     >
-
       <h2
         className="
           text-xl
@@ -940,7 +888,6 @@ function AppointmentSection({
       >
         {title}
       </h2>
-
 
       <p
         className="
@@ -959,7 +906,7 @@ function AppointmentSection({
             <PawPrint size={45} />
           }
           title="No hay citas"
-          text="No tienes servicios programados en esta sección."
+          text="No hay servicios programados en esta sección."
         />
       ) : (
         <div
@@ -976,11 +923,9 @@ function AppointmentSection({
                 key={
                   appointment.id_cita
                 }
-
                 appointment={
                   appointment
                 }
-
                 payments={
                   payments.filter(
                     (payment) =>
@@ -988,7 +933,6 @@ function AppointmentSection({
                       appointment.id_cita
                   )
                 }
-
                 onClick={() =>
                   onSelect(
                     appointment
@@ -999,15 +943,10 @@ function AppointmentSection({
           )}
         </div>
       )}
-
     </section>
   );
 }
 
-
-/* =========================================================
-   CITA
-========================================================= */
 
 function AppointmentCard({
   appointment,
@@ -1035,46 +974,32 @@ function AppointmentCard({
     <button
       type="button"
       onClick={onClick}
-
       className="
         flex
         w-full
         flex-col
         gap-4
-
         rounded-2xl
-
         border
         border-white/50
-
         bg-canwash-background/70
-
         p-5
-
         text-left
-
         backdrop-blur-sm
-
         transition
-
         hover:bg-canwash-background/90
         hover:shadow-lg
-
         sm:flex-row
       "
     >
-
       <div
         className="
           flex
           items-center
           gap-3
-
           border-b
           border-canwash-cream
-
           pb-4
-
           sm:min-w-32
           sm:border-b-0
           sm:border-r
@@ -1114,13 +1039,7 @@ function AppointmentCard({
       </div>
 
 
-      <div
-        className="
-          min-w-0
-          flex-1
-        "
-      >
-
+      <div className="min-w-0 flex-1">
         <div
           className="
             flex
@@ -1189,14 +1108,10 @@ function AppointmentCard({
                   flex
                   items-center
                   gap-1
-
                   rounded-lg
-
                   bg-white/70
-
                   px-3
                   py-2
-
                   text-xs
                   font-semibold
                   text-canwash-dark
@@ -1268,9 +1183,7 @@ function AppointmentCard({
             }
           />
         </div>
-
       </div>
-
     </button>
   );
 }
@@ -1295,17 +1208,13 @@ function PaymentsView({
 
   return (
     <>
-
       <section
         className="
           rounded-3xl
-
           bg-gradient-to-br
           from-canwash-light/80
           to-canwash-cream/80
-
           p-8
-
           backdrop-blur-sm
         "
       >
@@ -1339,13 +1248,10 @@ function PaymentsView({
           "
         >
           Consulta los pagos asociados
-          a las citas que tienes
-          asignadas.
+          a las citas.
         </p>
       </section>
 
-
-      {/* CARDS */}
 
       <section
         className="
@@ -1383,16 +1289,11 @@ function PaymentsView({
       <section
         className="
           mt-5
-
           rounded-2xl
-
           bg-white/80
-
           p-6
-
           shadow-lg
           shadow-canwash-dark/5
-
           backdrop-blur-sm
         "
       >
@@ -1444,7 +1345,6 @@ function PaymentsView({
           </div>
         )}
       </section>
-
     </>
   );
 }
@@ -1460,14 +1360,10 @@ function PaymentRow({
         grid
         grid-cols-[44px_1fr]
         gap-3
-
         border-t
         border-canwash-cream
-
         py-4
-
         first:border-0
-
         md:grid-cols-[44px_1fr_150px_140px]
         md:items-center
       "
@@ -1634,15 +1530,11 @@ function AppointmentModal({
         fixed
         inset-0
         z-[100]
-
         flex
         items-center
         justify-center
-
         bg-canwash-dark/50
-
         p-3
-
         backdrop-blur-sm
       "
     >
@@ -1654,21 +1546,13 @@ function AppointmentModal({
           max-h-[94dvh]
           w-full
           max-w-3xl
-
           overflow-y-auto
-
           rounded-2xl
-
           bg-white/95
-
           p-6
-
           shadow-2xl
-
-          backdrop-blur-md
         "
       >
-
         <div
           className="
             flex
@@ -1878,7 +1762,6 @@ function AppointmentModal({
             />
           </div>
         </section>
-
       </div>
     </div>
   );
@@ -1886,7 +1769,7 @@ function AppointmentModal({
 
 
 /* =========================================================
-   AUXILIARES
+   UI AUXILIAR
 ========================================================= */
 
 function Info({
@@ -2048,61 +1931,11 @@ function ErrorMessage({
         p-4
         text-sm
         text-red-700
-        backdrop-blur-sm
       "
     >
       <AlertCircle size={19} />
-
       {children}
     </div>
-  );
-}
-
-
-function LoadingScreen({
-  text,
-}) {
-  return (
-    <main
-      className="
-        grid
-        min-h-screen
-        place-items-center
-        bg-canwash-background
-      "
-    >
-      <div className="text-center">
-
-        <PawPrint
-          size={45}
-          className="
-            mx-auto
-            text-canwash
-          "
-        />
-
-        <h2
-          className="
-            mt-4
-            text-xl
-            font-bold
-            text-canwash-dark
-          "
-        >
-          Cargando Can Wash...
-        </h2>
-
-        <p
-          className="
-            mt-2
-            text-sm
-            text-canwash-muted
-          "
-        >
-          {text}
-        </p>
-      </div>
-    </main>
   );
 }
 
@@ -2113,19 +1946,17 @@ function StatusBadge({
   const normalized =
     status?.toUpperCase() || "";
 
-
   let style =
     "bg-canwash-cream text-canwash-dark";
 
-
   if (
     normalized === "CONFIRMADA" ||
-    normalized === "VALIDADO"
+    normalized === "VALIDADO" ||
+    normalized === "COMPLETADA"
   ) {
     style =
       "bg-emerald-100 text-emerald-700";
   }
-
 
   if (
     normalized === "PENDIENTE"
@@ -2134,7 +1965,6 @@ function StatusBadge({
       "bg-amber-100 text-amber-700";
   }
 
-
   if (
     normalized === "CANCELADA" ||
     normalized === "RECHAZADO"
@@ -2142,7 +1972,6 @@ function StatusBadge({
     style =
       "bg-red-100 text-red-700";
   }
-
 
   return (
     <span

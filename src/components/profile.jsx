@@ -19,10 +19,12 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "./sidebar";
-import MobileMenu from "./mobileMenu";
+import Sidebar from "../utils/sidebar";
+import MobileMenu from "../utils/mobileMenu";
+import Card from "../utils/card";
+import LoadingScreen from "../utils/loadingScreen";
+
 import LocationMap from "./locationMap";
-import Card from "./card";
 
 
 function Profile({
@@ -55,10 +57,6 @@ function Profile({
     useState("");
 
 
-  // =====================================================
-  // FORMULARIO
-  // =====================================================
-
   const [form, setForm] =
     useState({
       telefono: "",
@@ -74,7 +72,8 @@ function Profile({
   const role =
     user?.rol
       ?.trim()
-      .toUpperCase() || "";
+      .toUpperCase() ||
+    "";
 
 
   const isClient =
@@ -92,21 +91,19 @@ function Profile({
       );
 
       setLoading(false);
-
       return;
     }
 
 
     setLoading(true);
     setError("");
-    setSuccess("");
 
 
     try {
-      // ===============================================
-      // SOLO LOS CLIENTES TIENEN INFORMACIÓN
-      // EN LA TABLA CLIENTES
-      // ===============================================
+      /*
+        Por ahora los campos adicionales
+        pertenecen a la tabla clientes.
+      */
 
       if (isClient) {
         const {
@@ -160,7 +157,6 @@ function Profile({
         loadError
       );
 
-
       setError(
         "No fue posible cargar la información del perfil."
       );
@@ -172,7 +168,7 @@ function Profile({
 
 
   // =====================================================
-  // CARGA INICIAL
+  // CARGA
   // =====================================================
 
   useEffect(() => {
@@ -184,7 +180,7 @@ function Profile({
 
 
   // =====================================================
-  // CAMBIAR FORMULARIO
+  // FORMULARIO
   // =====================================================
 
   const handleChange = (e) => {
@@ -196,7 +192,6 @@ function Profile({
 
     setForm((current) => ({
       ...current,
-
       [name]: value,
     }));
 
@@ -207,25 +202,17 @@ function Profile({
 
 
   // =====================================================
-  // GUARDAR INFORMACIÓN
+  // GUARDAR
   // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
 
-    // ===============================================
-    // POR AHORA SOLO CLIENTES
-    // ===============================================
-
     if (!isClient) {
       return;
     }
 
-
-    // ===============================================
-    // VALIDACIONES
-    // ===============================================
 
     if (!form.telefono.trim()) {
       setError(
@@ -252,7 +239,7 @@ function Profile({
 
     try {
       // ===============================================
-      // PERFIL YA EXISTE
+      // ACTUALIZAR
       // ===============================================
 
       if (client) {
@@ -269,7 +256,8 @@ function Profile({
 
             direccion:
               form.direccion
-                .trim() || null,
+                .trim() ||
+              null,
           })
           .eq(
             "id_cliente",
@@ -283,7 +271,7 @@ function Profile({
 
       } else {
         // =============================================
-        // CREAR PERFIL CLIENTE
+        // CREAR PERFIL
         // =============================================
 
         const {
@@ -308,7 +296,8 @@ function Profile({
 
             direccion:
               form.direccion
-                .trim() || null,
+                .trim() ||
+              null,
 
             medio_contacto:
               "APP",
@@ -323,15 +312,6 @@ function Profile({
         }
       }
 
-
-      setSuccess(
-        "Tu información se guardó correctamente."
-      );
-
-
-      // ===============================================
-      // ACTUALIZAR DATOS LOCALES
-      // ===============================================
 
       await loadProfile();
 
@@ -358,24 +338,18 @@ function Profile({
 
 
   // =====================================================
-  // VOLVER AL DASHBOARD
+  // NAVEGACIÓN
   // =====================================================
 
   const handleBack = () => {
     setMobileMenuOpen(false);
-
-    onBack();
+    onBack?.();
   };
 
 
-  // =====================================================
-  // LOGOUT
-  // =====================================================
-
   const handleLogout = () => {
     setMobileMenuOpen(false);
-
-    onLogout();
+    onLogout?.();
   };
 
 
@@ -384,86 +358,7 @@ function Profile({
   // =====================================================
 
   if (loading) {
-    return (
-      <main
-        className="
-          grid
-          min-h-screen
-          place-items-center
-          bg-canwash-background
-          px-6
-        "
-      >
-
-        <div className="text-center">
-
-          <div
-            className="
-              mx-auto
-
-              grid
-              h-20
-              w-20
-              place-items-center
-
-              rounded-3xl
-
-              bg-canwash-light
-              text-canwash-dark
-
-              shadow-lg
-              shadow-canwash/20
-            "
-          >
-            <PawPrint size={42} />
-          </div>
-
-
-          <h2
-            className="
-              mt-6
-              text-2xl
-              font-bold
-              text-canwash-dark
-            "
-          >
-            Cargando perfil...
-          </h2>
-
-
-          <p
-            className="
-              mt-2
-              text-sm
-              text-canwash-muted
-            "
-          >
-            Preparando tu información.
-          </p>
-
-
-          <div
-            className="
-              mx-auto
-              mt-6
-
-              h-8
-              w-8
-
-              animate-spin
-
-              rounded-full
-
-              border-4
-              border-canwash-light
-              border-t-canwash-dark
-            "
-          />
-
-        </div>
-
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
 
@@ -478,10 +373,9 @@ function Profile({
         bg-canwash-background
       "
     >
-
-      {/* =================================================
+      {/* ===============================================
           SIDEBAR
-      ================================================== */}
+      ================================================ */}
 
       <Sidebar
         user={user}
@@ -491,15 +385,6 @@ function Profile({
         isOpen={
           mobileMenuOpen
         }
-
-        /*
-          Si el usuario pulsa Inicio, Citas, etc.
-          mientras está en Profile, volvemos primero
-          al dashboard.
-
-          Más adelante podemos mejorar esto para
-          conservar exactamente la vista elegida.
-        */
 
         onChangeView={
           handleBack
@@ -514,10 +399,6 @@ function Profile({
         }
       />
 
-
-      {/* =================================================
-          MENÚ MÓVIL
-      ================================================== */}
 
       <MobileMenu
         isOpen={
@@ -537,14 +418,13 @@ function Profile({
       />
 
 
-      {/* =================================================
+      {/* ===============================================
           CONTENIDO
-      ================================================== */}
+      ================================================ */}
 
       <main
         className="
           min-h-screen
-
           px-4
           pb-24
 
@@ -558,10 +438,9 @@ function Profile({
           lg:px-9
         "
       >
-
-        {/* =================================================
+        {/* =============================================
             TOPBAR
-        ================================================== */}
+        ============================================== */}
 
         <header
           className="
@@ -573,9 +452,7 @@ function Profile({
             py-3
           "
         >
-
           <div>
-
             <span
               className="
                 text-[10px]
@@ -587,7 +464,6 @@ function Profile({
               CAN WASH
             </span>
 
-
             <h2
               className="
                 mt-1
@@ -598,77 +474,50 @@ function Profile({
             >
               Mi perfil
             </h2>
-
           </div>
 
 
-          {/* ACTUALIZAR */}
-
           <button
             type="button"
-
             onClick={
               loadProfile
             }
-
             className="
               grid
               h-11
               w-11
               place-items-center
-
               rounded-xl
-
               border
               border-canwash-light
-
               bg-white/80
-
               text-canwash-dark
-
               backdrop-blur-sm
-
               transition
-
               hover:bg-white
-
               sm:flex
               sm:w-auto
               sm:gap-2
               sm:px-4
-              sm:text-sm
-              sm:font-semibold
             "
           >
+            <RefreshCw size={18} />
 
-            <RefreshCw
-              size={18}
-            />
-
-
-            <span
-              className="
-                hidden
-                sm:inline
-              "
-            >
+            <span className="hidden sm:inline">
               Actualizar
             </span>
-
           </button>
-
         </header>
 
 
-        {/* =================================================
-            PORTADA DEL PERFIL
-        ================================================== */}
+        {/* =============================================
+            CABECERA PERFIL
+        ============================================== */}
 
         <section
           className="
             relative
             overflow-hidden
-
             rounded-3xl
 
             bg-gradient-to-br
@@ -685,23 +534,17 @@ function Profile({
             sm:p-8
           "
         >
-
           <div
             className="
               relative
               z-10
-
               flex
               flex-col
               gap-5
-
               sm:flex-row
               sm:items-center
             "
           >
-
-            {/* AVATAR */}
-
             <div
               className="
                 grid
@@ -709,17 +552,12 @@ function Profile({
                 w-20
                 shrink-0
                 place-items-center
-
                 rounded-2xl
-
                 bg-canwash-dark
-
                 text-3xl
                 font-bold
                 text-white
-
                 shadow-lg
-                shadow-canwash-dark/20
               "
             >
               {user?.nombre
@@ -729,10 +567,7 @@ function Profile({
             </div>
 
 
-            {/* DATOS */}
-
             <div>
-
               <span
                 className="
                   text-[10px]
@@ -744,22 +579,18 @@ function Profile({
                 PERFIL DE USUARIO
               </span>
 
-
               <h1
                 className="
                   mt-1
-
                   text-2xl
                   font-bold
                   text-canwash-dark
-
                   sm:text-3xl
                 "
               >
                 {user?.nombre ||
                   "Usuario"}
               </h1>
-
 
               <p
                 className="
@@ -772,22 +603,16 @@ function Profile({
                   "Sin correo"}
               </p>
 
-
               <span
                 className="
                   mt-3
-
                   inline-flex
                   items-center
                   gap-2
-
                   rounded-full
-
                   bg-white/70
-
                   px-3
                   py-1.5
-
                   text-xs
                   font-semibold
                   text-canwash-dark
@@ -800,155 +625,103 @@ function Profile({
                 {role ||
                   "USUARIO"}
               </span>
-
             </div>
-
           </div>
 
-
-          {/* DECORACIÓN */}
 
           <PawPrint
             className="
               absolute
               -bottom-16
               right-8
-
               hidden
               h-52
               w-52
-
               text-canwash/20
-
               sm:block
             "
           />
-
         </section>
 
 
-        {/* =================================================
-            ERROR
-        ================================================== */}
+        {/* =============================================
+            MENSAJES
+        ============================================== */}
 
         {error && (
           <div
             role="alert"
-
             className="
               mt-5
-
               flex
               items-start
               gap-3
-
               rounded-xl
-
               border
               border-red-200
-
               bg-red-50/80
-
               p-4
-
               text-sm
               text-red-700
-
-              backdrop-blur-sm
             "
           >
-
             <AlertCircle
               size={19}
-              className="
-                mt-0.5
-                shrink-0
-              "
+              className="shrink-0"
             />
 
-            <span>
-              {error}
-            </span>
-
+            {error}
           </div>
         )}
 
-
-        {/* =================================================
-            ÉXITO
-        ================================================== */}
 
         {success && (
           <div
             role="status"
-
             className="
               mt-5
-
               flex
               items-start
               gap-3
-
               rounded-xl
-
               border
               border-emerald-200
-
               bg-emerald-50/80
-
               p-4
-
               text-sm
               font-medium
               text-emerald-700
-
-              backdrop-blur-sm
             "
           >
-
             <CheckCircle2
               size={19}
-              className="
-                mt-0.5
-                shrink-0
-              "
+              className="shrink-0"
             />
 
-            <span>
-              {success}
-            </span>
-
+            {success}
           </div>
         )}
 
 
-        {/* =================================================
-            CONTENIDO PRINCIPAL
-        ================================================== */}
+        {/* =============================================
+            GRID
+        ============================================== */}
 
         <div
           className="
             mt-6
-
             grid
             grid-cols-1
             gap-6
-
             xl:grid-cols-3
           "
         >
-
-          {/* ===============================================
-              INFORMACIÓN PERSONAL
-          ================================================ */}
+          {/* INFORMACIÓN */}
 
           <Card
             opacity={80}
-            className="
-              xl:col-span-2
-            "
+            className="xl:col-span-2"
           >
-
             <h2
               className="
                 text-xl
@@ -958,7 +731,6 @@ function Profile({
             >
               Información personal
             </h2>
-
 
             <p
               className="
@@ -972,47 +744,34 @@ function Profile({
             </p>
 
 
-            {/* =============================================
-                DATOS GENERALES
-            ============================================== */}
-
             <div
               className="
                 mt-6
-
                 grid
                 grid-cols-1
                 gap-4
-
                 sm:grid-cols-2
               "
             >
-
               <ProfileInformation
                 icon={
                   <User size={19} />
                 }
-
                 label="Nombre"
-
                 value={
                   user?.nombre
                 }
               />
 
-
               <ProfileInformation
                 icon={
                   <Mail size={19} />
                 }
-
                 label="Correo electrónico"
-
                 value={
                   user?.email
                 }
               />
-
 
               <ProfileInformation
                 icon={
@@ -1020,153 +779,111 @@ function Profile({
                     size={19}
                   />
                 }
-
                 label="Tipo de cuenta"
-
-                value={
-                  role
-                }
+                value={role}
               />
-
 
               {isClient && (
                 <ProfileInformation
                   icon={
                     <Phone size={19} />
                   }
-
                   label="Teléfono"
-
                   value={
                     form.telefono
                   }
                 />
               )}
-
             </div>
 
 
-            {/* =============================================
-                FORMULARIO CLIENTE
-            ============================================== */}
+            {/* FORM CLIENTE */}
 
             {isClient && (
               <form
                 onSubmit={
                   handleSubmit
                 }
-
                 className="
                   mt-7
-
                   border-t
                   border-canwash-cream
-
                   pt-2
                 "
               >
-
                 <div
                   className="
                     grid
                     grid-cols-1
                     gap-x-5
-
                     sm:grid-cols-2
                   "
                 >
-
-                  {/* TELÉFONO */}
-
                   <div>
-
                     <FormLabel
                       htmlFor="telefono"
                     >
                       Teléfono
                     </FormLabel>
 
-
                     <InputContainer
                       icon={
-                        <Phone size={19} />
+                        <Phone
+                          size={19}
+                        />
                       }
                     >
-
                       <input
                         id="telefono"
-
                         name="telefono"
-
                         type="tel"
-
                         value={
                           form.telefono
                         }
-
                         onChange={
                           handleChange
                         }
-
                         placeholder="981 123 4567"
-
                         className={
                           innerInputClasses
                         }
                       />
-
                     </InputContainer>
-
                   </div>
 
 
-                  {/* COLONIA */}
-
                   <div>
-
                     <FormLabel
                       htmlFor="colonia"
                     >
                       Colonia
                     </FormLabel>
 
-
                     <InputContainer
                       icon={
-                        <MapPin size={19} />
+                        <MapPin
+                          size={19}
+                        />
                       }
                     >
-
                       <input
                         id="colonia"
-
                         name="colonia"
-
                         value={
                           form.colonia
                         }
-
                         onChange={
                           handleChange
                         }
-
                         placeholder="Ej. Santa Ana"
-
                         className={
                           innerInputClasses
                         }
                       />
-
                     </InputContainer>
-
                   </div>
-
                 </div>
 
-
-                {/* =========================================
-                    DIRECCIÓN
-                ========================================== */}
 
                 <FormLabel
                   htmlFor="direccion"
@@ -1174,49 +891,32 @@ function Profile({
                   Dirección
                 </FormLabel>
 
-
                 <textarea
                   id="direccion"
-
                   name="direccion"
-
                   value={
                     form.direccion
                   }
-
                   onChange={
                     handleChange
                   }
-
                   placeholder="Calle, número y referencias"
-
                   className="
                     min-h-28
                     w-full
                     resize-y
-
                     rounded-xl
-
                     border
                     border-canwash-light
-
                     bg-white/70
-
                     px-4
                     py-3.5
-
                     text-sm
                     leading-6
                     text-canwash-text
-
                     outline-none
-
-                    backdrop-blur-sm
-
                     transition
-
                     placeholder:text-slate-400
-
                     focus:border-canwash
                     focus:ring-4
                     focus:ring-canwash/20
@@ -1224,87 +924,56 @@ function Profile({
                 />
 
 
-                {/* =========================================
-                    GUARDAR
-                ========================================== */}
-
                 <button
                   type="submit"
-
                   disabled={
                     saving
                   }
-
                   className="
                     mt-6
-
                     flex
                     items-center
                     justify-center
                     gap-2
-
                     rounded-xl
-
                     bg-canwash
-
                     px-5
                     py-3.5
-
                     text-sm
                     font-semibold
                     text-white
-
-                    shadow-lg
-                    shadow-canwash/20
-
                     transition
-
-                    hover:-translate-y-0.5
                     hover:bg-[#7899A4]
-
-                    disabled:cursor-not-allowed
-                    disabled:translate-y-0
                     disabled:opacity-60
                   "
                 >
-
                   <Save size={18} />
-
 
                   {saving
                     ? "Guardando..."
                     : "Guardar cambios"}
-
                 </button>
-
               </form>
             )}
-
           </Card>
 
 
-          {/* ===============================================
-              SEGURIDAD
-          ================================================ */}
+          {/* SEGURIDAD */}
 
           <Card opacity={80}>
-
             <div
               className="
                 grid
                 h-12
                 w-12
                 place-items-center
-
                 rounded-xl
-
                 bg-canwash-cream/80
                 text-canwash-dark
               "
             >
               <KeyRound size={23} />
             </div>
-
 
             <h2
               className="
@@ -1317,65 +986,47 @@ function Profile({
               Seguridad
             </h2>
 
-
             <p
               className="
                 mt-2
-
                 text-sm
                 leading-6
                 text-canwash-muted
               "
             >
               Administra las credenciales
-              y la seguridad de tu cuenta.
+              y seguridad de tu cuenta.
             </p>
-
-
-            {/* FUTURA FUNCIÓN */}
 
             <button
               type="button"
-
               className="
                 mt-6
-
                 w-full
-
                 rounded-xl
-
                 bg-canwash-dark
-
                 px-4
                 py-3
-
                 text-sm
                 font-semibold
                 text-white
-
                 transition
-
                 hover:bg-canwash
               "
             >
               Cambiar contraseña
             </button>
-
           </Card>
-
         </div>
 
 
-        {/* =================================================
-            UBICACIÓN
-            SOLO PARA CLIENTES
-        ================================================== */}
+        {/* =============================================
+            UBICACIÓN — SOLO CLIENTE
+        ============================================== */}
 
         {isClient && (
           <section className="mt-6">
-
             <div className="mb-4">
-
               <span
                 className="
                   text-[10px]
@@ -1386,7 +1037,6 @@ function Profile({
               >
                 SERVICIO A DOMICILIO
               </span>
-
 
               <h2
                 className="
@@ -1399,12 +1049,10 @@ function Profile({
                 Ubicación del domicilio
               </h2>
 
-
               <p
                 className="
                   mt-1
                   max-w-2xl
-
                   text-sm
                   leading-6
                   text-canwash-muted
@@ -1414,28 +1062,20 @@ function Profile({
                 ubicación para visualizar
                 tu posición en el mapa.
               </p>
-
             </div>
 
 
-            {/* =============================================
-                LEAFLET
-            ============================================== */}
-
             <LocationMap />
-
           </section>
         )}
-
       </main>
-
     </div>
   );
 }
 
 
 /* =========================================================
-   INFORMACIÓN DEL PERFIL
+   INFORMACIÓN
 ========================================================= */
 
 function ProfileInformation({
@@ -1449,17 +1089,11 @@ function ProfileInformation({
         flex
         items-start
         gap-3
-
         rounded-xl
-
         bg-canwash-background/70
-
         p-4
-
-        backdrop-blur-sm
       "
     >
-
       <div
         className="
           grid
@@ -1467,9 +1101,7 @@ function ProfileInformation({
           w-10
           shrink-0
           place-items-center
-
           rounded-lg
-
           bg-white/70
           text-canwash
         "
@@ -1477,13 +1109,10 @@ function ProfileInformation({
         {icon}
       </div>
 
-
       <div className="min-w-0">
-
         <span
           className="
             block
-
             text-[10px]
             font-semibold
             uppercase
@@ -1494,13 +1123,11 @@ function ProfileInformation({
           {label}
         </span>
 
-
         <strong
           className="
             mt-1
             block
             break-words
-
             text-sm
             text-canwash-dark
           "
@@ -1508,9 +1135,7 @@ function ProfileInformation({
           {value ||
             "Sin registrar"}
         </strong>
-
       </div>
-
     </div>
   );
 }
@@ -1531,26 +1156,17 @@ function InputContainer({
         min-h-12
         items-center
         gap-3
-
         rounded-xl
-
         border
         border-canwash-light
-
         bg-white/70
-
         px-4
-
-        backdrop-blur-sm
-
         transition
-
         focus-within:border-canwash
         focus-within:ring-4
         focus-within:ring-canwash/20
       "
     >
-
       <span
         className="
           shrink-0
@@ -1560,17 +1176,11 @@ function InputContainer({
         {icon}
       </span>
 
-
       {children}
-
     </div>
   );
 }
 
-
-/* =========================================================
-   LABEL
-========================================================= */
 
 function FormLabel({
   htmlFor,
@@ -1578,15 +1188,11 @@ function FormLabel({
 }) {
   return (
     <label
-      htmlFor={
-        htmlFor
-      }
-
+      htmlFor={htmlFor}
       className="
         mb-2
         mt-5
         block
-
         text-sm
         font-semibold
         text-canwash-dark
@@ -1598,27 +1204,16 @@ function FormLabel({
 }
 
 
-/* =========================================================
-   CLASE INPUT
-========================================================= */
-
 const innerInputClasses = `
   min-w-0
   flex-1
-
   border-none
-
   bg-transparent
-
   py-3.5
-
   text-sm
   text-canwash-text
-
   outline-none
-
   placeholder:text-slate-400
-
   focus:ring-0
 `;
 
