@@ -12,18 +12,24 @@ import {
 import { supabase } from "../lib/supabase";
 
 
-function Login({ onLogin, onRegister }) {
+function Login({
+  onLogin,
+  onRegister,
+}) {
   // =====================================================
   // ESTADOS
   // =====================================================
 
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+  const [form, setForm] =
+    useState({
+      email: "",
+      password: "",
+    });
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
 
   const [error, setError] =
     useState("");
@@ -42,27 +48,40 @@ function Login({ onLogin, onRegister }) {
       value,
     } = e.target;
 
+
     setForm((current) => ({
       ...current,
       [name]: value,
     }));
+
 
     setError("");
   };
 
 
   // =====================================================
-  // INICIAR SESIÓN
+  // LOGIN
   // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // -------------------------------------------------
-    // VALIDACIONES
-    // -------------------------------------------------
 
-    if (!form.email.trim()) {
+    // ===================================================
+    // NORMALIZAR DATOS
+    // ===================================================
+
+    const email =
+      form.email
+        .trim()
+        .toLowerCase();
+
+
+    // ===================================================
+    // VALIDACIONES
+    // ===================================================
+
+    if (!email) {
       setError(
         "Ingresa tu correo electrónico."
       );
@@ -86,7 +105,7 @@ function Login({ onLogin, onRegister }) {
 
     try {
       // =================================================
-      // AUTENTICACIÓN CON SUPABASE
+      // SUPABASE AUTH
       // =================================================
 
       const {
@@ -95,30 +114,27 @@ function Login({ onLogin, onRegister }) {
       } =
         await supabase.auth
           .signInWithPassword({
-            email:
-              form.email
-                .trim()
-                .toLowerCase(),
-
+            email,
             password:
               form.password,
           });
 
 
       // =================================================
-      // ERROR DE LOGIN
+      // ERROR DE SUPABASE
       // =================================================
 
       if (loginError) {
         console.error(
-          "Error de Supabase:",
+          "Error iniciando sesión:",
           loginError
         );
 
 
         const message =
           loginError.message
-            ?.toLowerCase() || "";
+            ?.toLowerCase() ||
+          "";
 
 
         if (
@@ -145,7 +161,7 @@ function Login({ onLogin, onRegister }) {
           )
         ) {
           setError(
-            "No fue posible conectarse con Supabase. Revisa tu conexión y configuración."
+            "No fue posible conectarse con el servidor."
           );
 
         } else {
@@ -155,17 +171,18 @@ function Login({ onLogin, onRegister }) {
           );
         }
 
+
         return;
       }
 
 
       // =================================================
-      // VERIFICAR USUARIO
+      // VALIDAR USUARIO
       // =================================================
 
       if (!data?.user) {
         setError(
-          "No fue posible obtener la información del usuario."
+          "No fue posible obtener la información de tu cuenta."
         );
 
         return;
@@ -173,15 +190,12 @@ function Login({ onLogin, onRegister }) {
 
 
       // =================================================
-      // AVISAR A APP.JSX
+      // APP / USEAUTH CARGARÁ:
       //
-      // App.jsx se encargará de:
-      //
-      // 1. Consultar public.usuarios
-      // 2. Obtener nombre
-      // 3. Obtener rol
-      // 4. Verificar activo
-      // 5. Mostrar el dashboard correcto
+      // public.usuarios
+      // nombre
+      // rol
+      // activo
       // =================================================
 
       if (onLogin) {
@@ -192,7 +206,7 @@ function Login({ onLogin, onRegister }) {
 
     } catch (unexpectedError) {
       console.error(
-        "Error inesperado al iniciar sesión:",
+        "Error inesperado durante el login:",
         unexpectedError
       );
 
@@ -230,12 +244,13 @@ function Login({ onLogin, onRegister }) {
         grid
         min-h-screen
         bg-canwash-background
+
         lg:grid-cols-2
       "
     >
 
       {/* =================================================
-          LADO IZQUIERDO
+          DECORACIÓN
       ================================================== */}
 
       <section
@@ -244,10 +259,13 @@ function Login({ onLogin, onRegister }) {
           hidden
           min-h-screen
           overflow-hidden
+
           bg-gradient-to-br
           from-canwash
           to-[#7899A4]
+
           p-12
+
           text-white
 
           lg:flex
@@ -258,37 +276,43 @@ function Login({ onLogin, onRegister }) {
         "
       >
 
-        {/* DECORACIÓN SUPERIOR */}
+        {/* CÍRCULO SUPERIOR */}
 
         <div
           className="
             absolute
             -left-44
             -top-44
+
             h-[450px]
             w-[450px]
+
             rounded-full
+
             bg-white/10
           "
         />
 
 
-        {/* DECORACIÓN INFERIOR */}
+        {/* CÍRCULO INFERIOR */}
 
         <div
           className="
             absolute
             -bottom-36
             -right-32
+
             h-[350px]
             w-[350px]
+
             rounded-full
+
             bg-white/10
           "
         />
 
 
-        {/* LOGO */}
+        {/* MARCA */}
 
         <div
           className="
@@ -306,6 +330,7 @@ function Login({ onLogin, onRegister }) {
           <h1
             className="
               mt-5
+
               text-6xl
               font-bold
               tracking-[-0.06em]
@@ -318,14 +343,63 @@ function Login({ onLogin, onRegister }) {
           <p
             className="
               mt-3
+
               text-xs
               font-semibold
               tracking-[0.3em]
+
               text-white/90
             "
           >
             ESTÉTICA CANINA Y FELINA
           </p>
+
+
+          <div
+            className="
+              mx-auto
+              mt-10
+              max-w-sm
+
+              rounded-2xl
+
+              border
+              border-white/20
+
+              bg-white/10
+
+              p-6
+
+              backdrop-blur-sm
+            "
+          >
+
+            <h2
+              className="
+                text-lg
+                font-semibold
+              "
+            >
+              Bienvenido
+            </h2>
+
+
+            <p
+              className="
+                mt-2
+
+                text-sm
+                leading-6
+
+                text-white/80
+              "
+            >
+              Administra tus servicios,
+              mascotas y citas desde un
+              solo lugar.
+            </p>
+
+          </div>
 
         </div>
 
@@ -333,7 +407,7 @@ function Login({ onLogin, onRegister }) {
 
 
       {/* =================================================
-          FORMULARIO
+          LOGIN
       ================================================== */}
 
       <section
@@ -342,6 +416,7 @@ function Login({ onLogin, onRegister }) {
           min-h-screen
           items-center
           justify-center
+
           px-6
           py-12
 
@@ -356,18 +431,82 @@ function Login({ onLogin, onRegister }) {
           "
         >
 
+          {/* LOGO MÓVIL */}
+
+          <div
+            className="
+              mb-8
+
+              flex
+              items-center
+              gap-3
+
+              lg:hidden
+            "
+          >
+
+            <div
+              className="
+                grid
+                h-12
+                w-12
+                place-items-center
+
+                rounded-xl
+
+                bg-canwash-light
+                text-canwash-dark
+              "
+            >
+              <PawPrint size={27} />
+            </div>
+
+
+            <div>
+
+              <strong
+                className="
+                  block
+                  text-lg
+                  text-canwash-dark
+                "
+              >
+                Can Wash
+              </strong>
+
+
+              <span
+                className="
+                  text-[9px]
+                  font-semibold
+                  tracking-[0.15em]
+                  text-canwash-muted
+                "
+              >
+                ESTÉTICA CANINA Y FELINA
+              </span>
+
+            </div>
+
+          </div>
+
+
           {/* ICONO */}
 
           <div
             className="
               mb-6
+
               grid
               h-16
               w-16
               place-items-center
+
               rounded-2xl
+
               bg-canwash-light
               text-canwash-dark
+
               shadow-lg
               shadow-canwash/20
             "
@@ -394,6 +533,7 @@ function Login({ onLogin, onRegister }) {
             className="
               mt-3
               max-w-sm
+
               text-sm
               leading-7
               text-canwash-muted
@@ -405,59 +545,31 @@ function Login({ onLogin, onRegister }) {
 
 
           {/* =================================================
-              FORM
+              FORMULARIO
           ================================================== */}
 
           <form
-            onSubmit={handleSubmit}
+            onSubmit={
+              handleSubmit
+            }
+
             className="mt-8"
           >
 
-            {/* =============================================
-                CORREO
-            ============================================== */}
+            {/* CORREO */}
 
-            <label
+            <FormLabel
               htmlFor="email"
-              className="
-                mb-2
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Correo electrónico
-            </label>
+            </FormLabel>
 
 
-            <div
-              className="
-                flex
-                min-h-12
-                items-center
-                gap-3
-                rounded-xl
-                border
-                border-canwash-light
-                bg-white
-                px-4
-                transition
-
-                focus-within:border-canwash
-                focus-within:ring-4
-                focus-within:ring-canwash/20
-              "
+            <InputContainer
+              icon={
+                <Mail size={20} />
+              }
             >
-
-              <Mail
-                size={20}
-                className="
-                  shrink-0
-                  text-canwash
-                "
-              />
-
 
               <input
                 id="email"
@@ -480,73 +592,28 @@ function Login({ onLogin, onRegister }) {
                   loading
                 }
 
-                className="
-                  min-w-0
-                  flex-1
-                  border-none
-                  bg-transparent
-                  py-3.5
-                  text-sm
-                  text-canwash-text
-                  outline-none
-                  placeholder:text-slate-400
-
-                  focus:ring-0
-
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                className={
+                  inputClasses
+                }
               />
 
-            </div>
+            </InputContainer>
 
 
-            {/* =============================================
-                CONTRASEÑA
-            ============================================== */}
+            {/* CONTRASEÑA */}
 
-            <label
+            <FormLabel
               htmlFor="password"
-              className="
-                mb-2
-                mt-5
-                block
-                text-sm
-                font-semibold
-                text-canwash-dark
-              "
             >
               Contraseña
-            </label>
+            </FormLabel>
 
 
-            <div
-              className="
-                flex
-                min-h-12
-                items-center
-                gap-3
-                rounded-xl
-                border
-                border-canwash-light
-                bg-white
-                px-4
-                transition
-
-                focus-within:border-canwash
-                focus-within:ring-4
-                focus-within:ring-canwash/20
-              "
+            <InputContainer
+              icon={
+                <Lock size={20} />
+              }
             >
-
-              <Lock
-                size={20}
-                className="
-                  shrink-0
-                  text-canwash
-                "
-              />
-
 
               <input
                 id="password"
@@ -574,26 +641,11 @@ function Login({ onLogin, onRegister }) {
                   loading
                 }
 
-                className="
-                  min-w-0
-                  flex-1
-                  border-none
-                  bg-transparent
-                  py-3.5
-                  text-sm
-                  text-canwash-text
-                  outline-none
-                  placeholder:text-slate-400
-
-                  focus:ring-0
-
-                  disabled:cursor-not-allowed
-                  disabled:opacity-60
-                "
+                className={
+                  inputClasses
+                }
               />
 
-
-              {/* MOSTRAR CONTRASEÑA */}
 
               <button
                 type="button"
@@ -621,8 +673,11 @@ function Login({ onLogin, onRegister }) {
                   w-9
                   shrink-0
                   place-items-center
+
                   rounded-lg
+
                   text-canwash
+
                   transition
 
                   hover:bg-canwash-background
@@ -632,7 +687,6 @@ function Login({ onLogin, onRegister }) {
                   focus-visible:ring-2
                   focus-visible:ring-canwash
 
-                  disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
               >
@@ -645,29 +699,34 @@ function Login({ onLogin, onRegister }) {
 
               </button>
 
-            </div>
+            </InputContainer>
 
 
-            {/* =============================================
-                ERROR
-            ============================================== */}
+            {/* ERROR */}
 
             {error && (
               <div
                 role="alert"
 
                 className="
-                  mt-4
+                  mt-5
+
                   rounded-xl
+
                   border
                   border-red-200
-                  bg-red-50
+
+                  bg-red-50/80
+
                   px-4
                   py-3
+
                   text-sm
                   font-medium
                   leading-5
                   text-red-700
+
+                  backdrop-blur-sm
                 "
               >
                 {error}
@@ -675,9 +734,7 @@ function Login({ onLogin, onRegister }) {
             )}
 
 
-            {/* =============================================
-                LOGIN
-            ============================================== */}
+            {/* BOTÓN LOGIN */}
 
             <button
               type="submit"
@@ -688,20 +745,27 @@ function Login({ onLogin, onRegister }) {
 
               className="
                 mt-6
+
                 flex
                 w-full
                 items-center
                 justify-center
                 gap-2
+
                 rounded-xl
+
                 bg-canwash
+
                 px-5
                 py-4
+
                 text-sm
                 font-semibold
                 text-white
+
                 shadow-lg
                 shadow-canwash/20
+
                 transition
 
                 hover:-translate-y-0.5
@@ -721,8 +785,7 @@ function Login({ onLogin, onRegister }) {
 
               {loading
                 ? "Iniciando sesión..."
-                : "Iniciar sesión"
-              }
+                : "Iniciar sesión"}
 
 
               {!loading && (
@@ -732,18 +795,18 @@ function Login({ onLogin, onRegister }) {
             </button>
 
 
-            {/* =============================================
-                REGISTRO
-            ============================================== */}
+            {/* REGISTRO */}
 
             <div
               className="
                 mt-6
+
                 flex
                 flex-wrap
                 items-center
                 justify-center
                 gap-1.5
+
                 text-sm
                 text-canwash-muted
               "
@@ -767,18 +830,15 @@ function Login({ onLogin, onRegister }) {
 
                 className="
                   rounded
+
                   font-bold
                   text-canwash-dark
+
                   transition
 
                   hover:text-canwash
                   hover:underline
 
-                  focus:outline-none
-                  focus-visible:ring-2
-                  focus-visible:ring-canwash
-
-                  disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
               >
@@ -796,6 +856,116 @@ function Login({ onLogin, onRegister }) {
     </main>
   );
 }
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+function FormLabel({
+  htmlFor,
+  children,
+}) {
+  return (
+    <label
+      htmlFor={
+        htmlFor
+      }
+
+      className="
+        mb-2
+        mt-5
+        block
+
+        text-sm
+        font-semibold
+        text-canwash-dark
+      "
+    >
+      {children}
+    </label>
+  );
+}
+
+
+/* =========================================================
+   INPUT CON ICONO
+========================================================= */
+
+function InputContainer({
+  icon,
+  children,
+}) {
+  return (
+    <div
+      className="
+        flex
+        min-h-12
+        items-center
+        gap-3
+
+        rounded-xl
+
+        border
+        border-canwash-light
+
+        bg-white/80
+
+        px-4
+
+        backdrop-blur-sm
+
+        transition
+
+        focus-within:border-canwash
+        focus-within:ring-4
+        focus-within:ring-canwash/20
+      "
+    >
+
+      <span
+        className="
+          shrink-0
+          text-canwash
+        "
+      >
+        {icon}
+      </span>
+
+
+      {children}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   CLASE INPUT
+========================================================= */
+
+const inputClasses = `
+  min-w-0
+  flex-1
+
+  border-none
+
+  bg-transparent
+
+  py-3.5
+
+  text-sm
+  text-canwash-text
+
+  outline-none
+
+  placeholder:text-slate-400
+
+  focus:ring-0
+
+  disabled:cursor-not-allowed
+  disabled:opacity-60
+`;
 
 
 export default Login;

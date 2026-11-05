@@ -25,38 +25,47 @@ function Register({
   // ESTADOS
   // =====================================================
 
-  const [accountType, setAccountType] =
-    useState("CLIENTE");
+  const [
+    accountType,
+    setAccountType,
+  ] = useState("CLIENTE");
 
-  const [form, setForm] = useState({
-    nombre: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+
+  const [form, setForm] =
+    useState({
+      nombre: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
+
 
   const [
     showPassword,
     setShowPassword,
   ] = useState(false);
 
+
   const [
     showConfirmPassword,
     setShowConfirmPassword,
   ] = useState(false);
 
+
   const [error, setError] =
     useState("");
 
+
   const [success, setSuccess] =
     useState("");
+
 
   const [loading, setLoading] =
     useState(false);
 
 
   // =====================================================
-  // ACTUALIZAR FORMULARIO
+  // FORMULARIO
   // =====================================================
 
   const handleChange = (e) => {
@@ -65,10 +74,12 @@ function Register({
       value,
     } = e.target;
 
+
     setForm((current) => ({
       ...current,
       [name]: value,
     }));
+
 
     setError("");
     setSuccess("");
@@ -76,10 +87,12 @@ function Register({
 
 
   // =====================================================
-  // CAMBIAR TIPO DE CUENTA
+  // TIPO DE CUENTA
   // =====================================================
 
-  const selectAccountType = (type) => {
+  const selectAccountType = (
+    type
+  ) => {
     setAccountType(type);
 
     setError("");
@@ -88,28 +101,34 @@ function Register({
 
 
   // =====================================================
-  // REGISTRAR CUENTA
+  // REGISTRO
   // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+
     setError("");
     setSuccess("");
 
 
-    // =================================================
-    // VALIDACIONES
-    // =================================================
+    // ===================================================
+    // NORMALIZAR
+    // ===================================================
 
     const nombre =
       form.nombre.trim();
+
 
     const email =
       form.email
         .trim()
         .toLowerCase();
 
+
+    // ===================================================
+    // VALIDACIONES
+    // ===================================================
 
     if (!nombre) {
       setError(
@@ -147,7 +166,9 @@ function Register({
     }
 
 
-    if (form.password.length < 6) {
+    if (
+      form.password.length < 6
+    ) {
       setError(
         "La contraseña debe tener al menos 6 caracteres."
       );
@@ -185,30 +206,32 @@ function Register({
 
     try {
       // =================================================
-      // CREAR USUARIO EN SUPABASE AUTH
+      // CREAR CUENTA EN SUPABASE AUTH
       // =================================================
 
       const {
         data,
         error: signUpError,
       } =
-        await supabase.auth.signUp({
-          email,
-          password:
-            form.password,
+        await supabase.auth
+          .signUp({
+            email,
 
-          options: {
-            data: {
-              nombre,
-              rol:
-                accountType,
+            password:
+              form.password,
+
+            options: {
+              data: {
+                nombre,
+                rol:
+                  accountType,
+              },
             },
-          },
-        });
+          });
 
 
       // =================================================
-      // ERROR DE REGISTRO
+      // ERROR
       // =================================================
 
       if (signUpError) {
@@ -220,7 +243,8 @@ function Register({
 
         const message =
           signUpError.message
-            ?.toLowerCase() || "";
+            ?.toLowerCase() ||
+          "";
 
 
         if (
@@ -246,7 +270,7 @@ function Register({
 
         } else if (
           message.includes(
-            "email"
+            "invalid email"
           )
         ) {
           setError(
@@ -259,7 +283,7 @@ function Register({
           )
         ) {
           setError(
-            "No fue posible conectarse con Supabase."
+            "No fue posible conectarse con el servidor."
           );
 
         } else {
@@ -269,17 +293,18 @@ function Register({
           );
         }
 
+
         return;
       }
 
 
       // =================================================
-      // VERIFICAR USUARIO CREADO
+      // VALIDAR RESPUESTA
       // =================================================
 
       if (!data?.user) {
         setError(
-          "Supabase no devolvió la información del usuario."
+          "No fue posible obtener la información de la nueva cuenta."
         );
 
         return;
@@ -290,28 +315,21 @@ function Register({
         ==================================================
         IMPORTANTE
 
-        NO hacemos:
-
-        supabase
-          .from("usuarios")
-          .insert(...)
-
-        desde React.
-
-        El trigger de Supabase debe tomar:
-
-        auth.users.id
-        raw_user_meta_data.nombre
-        raw_user_meta_data.rol
-
-        y crear:
+        React NO inserta manualmente en:
 
         public.usuarios
 
-        id_usuario
-        nombre
-        rol
-        activo
+        La cuenta se crea en:
+
+        auth.users
+
+        enviando:
+
+        raw_user_meta_data.nombre
+        raw_user_meta_data.rol
+
+        El trigger de Supabase debe crear después
+        la fila correspondiente en public.usuarios.
 
         ==================================================
       */
@@ -330,22 +348,22 @@ function Register({
 
 
       // =================================================
-      // ¿REQUIERE CONFIRMACIÓN DE CORREO?
+      // CONFIRMACIÓN DE CORREO
       // =================================================
 
       if (!data.session) {
         setSuccess(
-          "Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión."
+          "Cuenta creada correctamente. Revisa tu correo electrónico para confirmar tu cuenta."
         );
 
       } else {
         /*
           Si Supabase inicia sesión automáticamente
-          después del registro, la cerramos.
+          después del registro, cerramos esa sesión.
 
-          Así mantenemos un flujo sencillo:
+          Así mantenemos:
 
-          Registro
+          Register
              ↓
           Login
              ↓
@@ -361,7 +379,7 @@ function Register({
 
         if (logoutError) {
           console.warn(
-            "La cuenta se creó, pero no fue posible cerrar la sesión automática:",
+            "No fue posible cerrar la sesión automática:",
             logoutError
           );
         }
@@ -429,7 +447,7 @@ function Register({
     >
 
       {/* =================================================
-          LADO IZQUIERDO
+          DECORACIÓN
       ================================================== */}
 
       <section
@@ -444,6 +462,7 @@ function Register({
           to-[#7899A4]
 
           p-12
+
           text-white
 
           lg:flex
@@ -453,8 +472,6 @@ function Register({
           lg:text-center
         "
       >
-
-        {/* CÍRCULO SUPERIOR */}
 
         <div
           className="
@@ -471,8 +488,6 @@ function Register({
         />
 
 
-        {/* CÍRCULO INFERIOR */}
-
         <div
           className="
             absolute
@@ -487,8 +502,6 @@ function Register({
           "
         />
 
-
-        {/* LOGO */}
 
         <div
           className="
@@ -523,6 +536,7 @@ function Register({
               text-xs
               font-semibold
               tracking-[0.3em]
+
               text-white/90
             "
           >
@@ -539,7 +553,7 @@ function Register({
               rounded-2xl
 
               border
-              border-white/10
+              border-white/20
 
               bg-white/10
 
@@ -551,13 +565,14 @@ function Register({
             "
           >
 
-            <h3
+            <h2
               className="
+                text-lg
                 font-semibold
               "
             >
               Crea tu cuenta
-            </h3>
+            </h2>
 
 
             <p
@@ -570,7 +585,7 @@ function Register({
               "
             >
               Regístrate para utilizar
-              los servicios de Can Wash
+              las funciones de Can Wash
               según el tipo de cuenta
               seleccionado.
             </p>
@@ -583,7 +598,7 @@ function Register({
 
 
       {/* =================================================
-          LADO DERECHO
+          FORMULARIO
       ================================================== */}
 
       <section
@@ -607,9 +622,7 @@ function Register({
           "
         >
 
-          {/* =================================================
-              VOLVER
-          ================================================== */}
+          {/* VOLVER */}
 
           <button
             type="button"
@@ -629,8 +642,6 @@ function Register({
               items-center
               gap-2
 
-              rounded-lg
-
               text-sm
               font-semibold
               text-canwash-dark
@@ -639,25 +650,73 @@ function Register({
 
               hover:text-canwash
 
-              focus:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-canwash
-
-              disabled:cursor-not-allowed
               disabled:opacity-50
             "
           >
-
             <ArrowLeft size={18} />
 
             Volver
-
           </button>
 
 
-          {/* =================================================
-              ICONO
-          ================================================== */}
+          {/* LOGO MÓVIL */}
+
+          <div
+            className="
+              mb-7
+
+              flex
+              items-center
+              gap-3
+
+              lg:hidden
+            "
+          >
+
+            <div
+              className="
+                grid
+                h-12
+                w-12
+                place-items-center
+
+                rounded-xl
+
+                bg-canwash-light
+                text-canwash-dark
+              "
+            >
+              <PawPrint size={27} />
+            </div>
+
+
+            <div>
+              <strong
+                className="
+                  block
+                  text-lg
+                  text-canwash-dark
+                "
+              >
+                Can Wash
+              </strong>
+
+              <span
+                className="
+                  text-[9px]
+                  font-semibold
+                  tracking-[0.15em]
+                  text-canwash-muted
+                "
+              >
+                ESTÉTICA CANINA Y FELINA
+              </span>
+            </div>
+
+          </div>
+
+
+          {/* ICONO */}
 
           <div
             className="
@@ -681,10 +740,6 @@ function Register({
           </div>
 
 
-          {/* =================================================
-              TÍTULO
-          ================================================== */}
-
           <h2
             className="
               text-4xl
@@ -706,8 +761,8 @@ function Register({
               text-canwash-muted
             "
           >
-            Crea una cuenta para utilizar
-            los servicios de Can Wash.
+            Registra tus datos para crear
+            una cuenta de Can Wash.
           </p>
 
 
@@ -785,7 +840,7 @@ function Register({
 
                 title="Empleado"
 
-                description="Consulta tus citas y actividades asignadas."
+                description="Consulta citas, servicios y actividades asignadas."
 
                 onClick={() =>
                   selectAccountType(
@@ -815,9 +870,7 @@ function Register({
             className="mt-8"
           >
 
-            {/* =============================================
-                NOMBRE
-            ============================================== */}
+            {/* NOMBRE */}
 
             <FormLabel
               htmlFor="nombre"
@@ -854,16 +907,14 @@ function Register({
                 }
 
                 className={
-                  inputInsideClasses
+                  inputClasses
                 }
               />
 
             </InputContainer>
 
 
-            {/* =============================================
-                EMAIL
-            ============================================== */}
+            {/* CORREO */}
 
             <FormLabel
               htmlFor="email"
@@ -900,16 +951,14 @@ function Register({
                 }
 
                 className={
-                  inputInsideClasses
+                  inputClasses
                 }
               />
 
             </InputContainer>
 
 
-            {/* =============================================
-                CONTRASEÑA
-            ============================================== */}
+            {/* CONTRASEÑA */}
 
             <FormLabel
               htmlFor="password"
@@ -949,9 +998,7 @@ function Register({
             />
 
 
-            {/* =============================================
-                CONFIRMAR CONTRASEÑA
-            ============================================== */}
+            {/* CONFIRMAR */}
 
             <FormLabel
               htmlFor="confirmPassword"
@@ -991,9 +1038,7 @@ function Register({
             />
 
 
-            {/* =============================================
-                ERROR
-            ============================================== */}
+            {/* ERROR */}
 
             {error && (
               <div
@@ -1007,15 +1052,16 @@ function Register({
                   border
                   border-red-200
 
-                  bg-red-50
+                  bg-red-50/80
 
                   px-4
                   py-3
 
                   text-sm
                   font-medium
-                  leading-5
                   text-red-700
+
+                  backdrop-blur-sm
                 "
               >
                 {error}
@@ -1023,9 +1069,7 @@ function Register({
             )}
 
 
-            {/* =============================================
-                ÉXITO
-            ============================================== */}
+            {/* ÉXITO */}
 
             {success && (
               <div
@@ -1043,7 +1087,7 @@ function Register({
                   border
                   border-emerald-200
 
-                  bg-emerald-50
+                  bg-emerald-50/80
 
                   px-4
                   py-3
@@ -1052,6 +1096,8 @@ function Register({
                   font-medium
                   leading-5
                   text-emerald-700
+
+                  backdrop-blur-sm
                 "
               >
 
@@ -1071,9 +1117,7 @@ function Register({
             )}
 
 
-            {/* =============================================
-                CREAR CUENTA
-            ============================================== */}
+            {/* CREAR CUENTA */}
 
             <button
               type="submit"
@@ -1118,14 +1162,12 @@ function Register({
                 disabled:cursor-not-allowed
                 disabled:translate-y-0
                 disabled:opacity-60
-                disabled:shadow-none
               "
             >
 
               {loading
                 ? "Creando cuenta..."
-                : "Crear cuenta"
-              }
+                : "Crear cuenta"}
 
 
               {!loading && (
@@ -1135,9 +1177,7 @@ function Register({
             </button>
 
 
-            {/* =============================================
-                LOGIN
-            ============================================== */}
+            {/* LOGIN */}
 
             <div
               className="
@@ -1181,11 +1221,6 @@ function Register({
                   hover:text-canwash
                   hover:underline
 
-                  focus:outline-none
-                  focus-visible:ring-2
-                  focus-visible:ring-canwash
-
-                  disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
               >
@@ -1247,6 +1282,8 @@ function AccountTypeButton({
 
         text-left
 
+        backdrop-blur-sm
+
         transition
 
         focus:outline-none
@@ -1260,15 +1297,17 @@ function AccountTypeButton({
           selected
             ? `
               border-canwash
-              bg-canwash-light/20
+              bg-canwash-light/30
               shadow-md
               shadow-canwash/10
             `
             : `
               border-canwash-cream
-              bg-white
+              bg-white/70
+
               hover:-translate-y-0.5
               hover:border-canwash
+              hover:bg-white/90
               hover:shadow-md
             `
         }
@@ -1339,87 +1378,7 @@ function AccountTypeButton({
 
 
 /* =========================================================
-   LABEL
-========================================================= */
-
-function FormLabel({
-  htmlFor,
-  children,
-}) {
-  return (
-    <label
-      htmlFor={
-        htmlFor
-      }
-
-      className="
-        mb-2
-        mt-5
-        block
-
-        text-sm
-        font-semibold
-        text-canwash-dark
-      "
-    >
-      {children}
-    </label>
-  );
-}
-
-
-/* =========================================================
-   INPUT CON ICONO
-========================================================= */
-
-function InputContainer({
-  icon,
-  children,
-}) {
-  return (
-    <div
-      className="
-        flex
-        min-h-12
-        items-center
-        gap-3
-
-        rounded-xl
-
-        border
-        border-canwash-light
-
-        bg-white
-
-        px-4
-
-        transition
-
-        focus-within:border-canwash
-        focus-within:ring-4
-        focus-within:ring-canwash/20
-      "
-    >
-
-      <span
-        className="
-          shrink-0
-          text-canwash
-        "
-      >
-        {icon}
-      </span>
-
-
-      {children}
-
-    </div>
-  );
-}
-
-
-/* =========================================================
-   CONTRASEÑA
+   PASSWORD INPUT
 ========================================================= */
 
 function PasswordInput({
@@ -1468,7 +1427,7 @@ function PasswordInput({
         }
 
         className={
-          inputInsideClasses
+          inputClasses
         }
       />
 
@@ -1510,7 +1469,6 @@ function PasswordInput({
           focus-visible:ring-2
           focus-visible:ring-canwash
 
-          disabled:cursor-not-allowed
           disabled:opacity-50
         "
       >
@@ -1529,10 +1487,92 @@ function PasswordInput({
 
 
 /* =========================================================
-   CLASES INPUT
+   INPUT CON ICONO
 ========================================================= */
 
-const inputInsideClasses = `
+function InputContainer({
+  icon,
+  children,
+}) {
+  return (
+    <div
+      className="
+        flex
+        min-h-12
+        items-center
+        gap-3
+
+        rounded-xl
+
+        border
+        border-canwash-light
+
+        bg-white/80
+
+        px-4
+
+        backdrop-blur-sm
+
+        transition
+
+        focus-within:border-canwash
+        focus-within:ring-4
+        focus-within:ring-canwash/20
+      "
+    >
+
+      <span
+        className="
+          shrink-0
+          text-canwash
+        "
+      >
+        {icon}
+      </span>
+
+
+      {children}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+function FormLabel({
+  htmlFor,
+  children,
+}) {
+  return (
+    <label
+      htmlFor={
+        htmlFor
+      }
+
+      className="
+        mb-2
+        mt-5
+        block
+
+        text-sm
+        font-semibold
+        text-canwash-dark
+      "
+    >
+      {children}
+    </label>
+  );
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+const inputClasses = `
   min-w-0
   flex-1
 
