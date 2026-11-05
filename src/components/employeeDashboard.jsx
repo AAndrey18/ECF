@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   AlertCircle,
@@ -19,13 +23,15 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "../utils/sidebar";
-import MobileMenu from "../utils/mobileMenu";
+import Sidebar from "./sidebar";
+import MobileMenu from "./mobileMenu";
+import Card from "./card";
 
 
 function EmployeeDashboard({
   user,
   onLogout,
+  onProfile,
 }) {
   // =====================================================
   // ESTADOS
@@ -68,7 +74,6 @@ function EmployeeDashboard({
       );
 
       setLoading(false);
-
       return;
     }
 
@@ -243,7 +248,7 @@ function EmployeeDashboard({
 
 
   // =====================================================
-  // FECHA
+  // CITAS
   // =====================================================
 
   const today =
@@ -251,10 +256,6 @@ function EmployeeDashboard({
       .toISOString()
       .split("T")[0];
 
-
-  // =====================================================
-  // CITAS HOY
-  // =====================================================
 
   const todayAppointments =
     useMemo(() => {
@@ -264,10 +265,6 @@ function EmployeeDashboard({
       );
     }, [appointments, today]);
 
-
-  // =====================================================
-  // PRÓXIMAS
-  // =====================================================
 
   const upcomingAppointments =
     useMemo(() => {
@@ -328,28 +325,12 @@ function EmployeeDashboard({
   };
 
 
-  // =====================================================
-  // PERFIL
-  // =====================================================
-
   const openProfile = () => {
     setMobileMenuOpen(false);
 
-    /*
-      Después conectaremos aquí
-      profile.jsx.
-    */
-
-    console.log(
-      "Abrir perfil:",
-      user
-    );
+    onProfile();
   };
 
-
-  // =====================================================
-  // LOGOUT
-  // =====================================================
 
   const handleLogout = () => {
     setMobileMenuOpen(false);
@@ -383,41 +364,22 @@ function EmployeeDashboard({
       "
     >
 
-      {/* =================================================
-          MISMO SIDEBAR
-      ================================================== */}
+      {/* SIDEBAR */}
 
       <Sidebar
         user={user}
-
         view={view}
-
-        isOpen={
-          mobileMenuOpen
-        }
-
-        onChangeView={
-          changeView
-        }
-
-        onProfile={
-          openProfile
-        }
-
-        onLogout={
-          handleLogout
-        }
+        isOpen={mobileMenuOpen}
+        onChangeView={changeView}
+        onProfile={openProfile}
+        onLogout={handleLogout}
       />
 
 
-      {/* =================================================
-          MOBILE MENU
-      ================================================== */}
+      {/* MOBILE */}
 
       <MobileMenu
-        isOpen={
-          mobileMenuOpen
-        }
+        isOpen={mobileMenuOpen}
 
         onToggle={() =>
           setMobileMenuOpen(
@@ -454,17 +416,15 @@ function EmployeeDashboard({
         "
       >
 
-        {/* =================================================
-            TOPBAR
-        ================================================== */}
-
         <Topbar
           user={user}
 
           title={
             view === "pagos"
               ? "Pagos"
-              : "Mis citas"
+              : view === "empleados"
+                ? "Empleados"
+                : "Mis citas"
           }
 
           onRefresh={
@@ -472,10 +432,6 @@ function EmployeeDashboard({
           }
         />
 
-
-        {/* =================================================
-            ERROR
-        ================================================== */}
 
         {error && (
           <ErrorMessage>
@@ -491,9 +447,7 @@ function EmployeeDashboard({
         {view === "citas" && (
           <>
 
-            {/* =============================================
-                BIENVENIDA
-            ============================================== */}
+            {/* BIENVENIDA */}
 
             <section
               className="
@@ -503,14 +457,13 @@ function EmployeeDashboard({
                 rounded-3xl
 
                 bg-gradient-to-br
-                from-canwash-light
-                to-canwash-cream
+                from-canwash-light/80
+                to-canwash-cream/80
 
                 px-6
                 py-8
 
-                shadow-lg
-                shadow-canwash-dark/5
+                backdrop-blur-sm
 
                 sm:px-8
                 sm:py-10
@@ -544,7 +497,6 @@ function EmployeeDashboard({
                     font-bold
                     tracking-tight
                     text-canwash-dark
-
                     sm:text-4xl
                   "
                 >
@@ -560,7 +512,6 @@ function EmployeeDashboard({
                     text-sm
                     leading-7
                     text-canwash-text
-
                     sm:text-base
                   "
                 >
@@ -593,7 +544,7 @@ function EmployeeDashboard({
 
 
             {/* =============================================
-                ESTADÍSTICAS
+                CARDS
             ============================================== */}
 
             <section
@@ -610,108 +561,88 @@ function EmployeeDashboard({
               "
             >
 
-              <StatCard
+              <Card
+                opacity={80}
                 icon={
                   <CalendarDays />
                 }
-
                 title="Citas de hoy"
-
                 value={
                   todayAppointments.length
                 }
-
                 text="Servicios programados"
               />
 
 
-              <StatCard
+              <Card
+                opacity={80}
                 icon={
                   <CheckCircle2 />
                 }
-
                 title="Confirmadas"
-
                 value={
                   confirmedAppointments
                 }
-
                 text="Citas confirmadas"
               />
 
 
-              <StatCard
+              <Card
+                opacity={80}
                 icon={
                   <AlertCircle />
                 }
-
                 title="Pendientes"
-
                 value={
                   pendingAppointments
                 }
-
                 text="Por confirmar"
               />
 
 
-              <StatCard
+              <Card
+                opacity={80}
                 icon={
                   <CalendarClock />
                 }
-
                 title="Próximas"
-
                 value={
                   upcomingAppointments.length
                 }
-
                 text="Desde hoy"
               />
 
             </section>
 
 
-            {/* =============================================
-                HOY
-            ============================================== */}
+            {/* CITAS HOY */}
 
             <AppointmentSection
               title="Citas de hoy"
-
               subtitle="Servicios programados para tu jornada."
-
               appointments={
                 todayAppointments
               }
-
               payments={
                 payments
               }
-
               onSelect={
                 setSelectedAppointment
               }
             />
 
 
-            {/* =============================================
-                PRÓXIMAS
-            ============================================== */}
+            {/* PRÓXIMAS */}
 
             <AppointmentSection
               title="Próximas citas"
-
               subtitle="Servicios que tienes asignados."
-
               appointments={
                 upcomingAppointments
               }
-
               payments={
                 payments
               }
-
               onSelect={
                 setSelectedAppointment
               }
@@ -727,14 +658,10 @@ function EmployeeDashboard({
 
         {view === "pagos" && (
           <PaymentsView
-            payments={
-              payments
-            }
-
+            payments={payments}
             appointments={
               appointments
             }
-
             totalPayments={
               totalPayments
             }
@@ -743,22 +670,15 @@ function EmployeeDashboard({
 
 
         {/* =================================================
-            ADMIN - EMPLEADOS
-            BASE PARA FUTURA FUNCIÓN
+            ADMIN
         ================================================== */}
 
         {view === "empleados" &&
           user?.rol === "ADMIN" && (
-          <section
-            className="
-              rounded-2xl
-              bg-white
-              p-7
-              shadow-lg
-              shadow-canwash-dark/5
-            "
+          <Card
+            opacity={80}
+            className="mt-2"
           >
-
             <h1
               className="
                 text-2xl
@@ -768,7 +688,6 @@ function EmployeeDashboard({
             >
               Empleados
             </h1>
-
 
             <p
               className="
@@ -781,16 +700,13 @@ function EmployeeDashboard({
               preparada para administrar
               empleados posteriormente.
             </p>
-
-          </section>
+          </Card>
         )}
 
       </main>
 
 
-      {/* =================================================
-          MODAL CITA
-      ================================================== */}
+      {/* MODAL CITA */}
 
       {selectedAppointment && (
         <AppointmentModal
@@ -844,7 +760,6 @@ function Topbar({
           sm:block
         "
       >
-
         <span
           className="
             text-[10px]
@@ -856,7 +771,6 @@ function Topbar({
           CAN WASH
         </span>
 
-
         <h2
           className="
             mt-1
@@ -867,7 +781,6 @@ function Topbar({
         >
           {title}
         </h2>
-
       </div>
 
 
@@ -883,10 +796,7 @@ function Topbar({
 
         <button
           type="button"
-
-          onClick={
-            onRefresh
-          }
+          onClick={onRefresh}
 
           className="
             grid
@@ -899,9 +809,11 @@ function Topbar({
             border
             border-canwash-light
 
-            bg-white
+            bg-white/80
 
             text-canwash-dark
+
+            backdrop-blur-sm
 
             sm:flex
             sm:w-auto
@@ -936,16 +848,18 @@ function Topbar({
               h-11
               w-11
               place-items-center
+
               rounded-full
-              bg-canwash-light
+
+              bg-canwash-light/80
+
               font-bold
               text-canwash-dark
             "
           >
             {user?.nombre
               ?.charAt(0)
-              .toUpperCase() ||
-              "E"}
+              .toUpperCase() || "E"}
           </div>
 
 
@@ -987,85 +901,6 @@ function Topbar({
 
 
 /* =========================================================
-   ESTADÍSTICA
-========================================================= */
-
-function StatCard({
-  icon,
-  title,
-  value,
-  text,
-}) {
-  return (
-    <article
-      className="
-        flex
-        items-center
-        gap-4
-
-        rounded-2xl
-
-        bg-white
-
-        p-5
-
-        shadow-lg
-        shadow-canwash-dark/5
-      "
-    >
-      <div
-        className="
-          grid
-          h-12
-          w-12
-          shrink-0
-          place-items-center
-
-          rounded-xl
-
-          bg-canwash-cream
-          text-canwash-dark
-        "
-      >
-        {icon}
-      </div>
-
-      <div>
-        <span
-          className="
-            text-xs
-            text-canwash-muted
-          "
-        >
-          {title}
-        </span>
-
-        <h2
-          className="
-            my-1
-            text-3xl
-            font-bold
-            text-canwash-dark
-          "
-        >
-          {value}
-        </h2>
-
-        <small
-          className="
-            text-xs
-            text-canwash-muted
-          "
-        >
-          {text}
-        </small>
-      </div>
-    </article>
-  );
-}
-
-
-/* =========================================================
    SECCIÓN CITAS
 ========================================================= */
 
@@ -1080,11 +915,18 @@ function AppointmentSection({
     <section
       className="
         mt-5
+
         rounded-2xl
-        bg-white
+
+        bg-white/80
+
         p-5
+
         shadow-lg
         shadow-canwash-dark/5
+
+        backdrop-blur-sm
+
         sm:p-7
       "
     >
@@ -1098,6 +940,7 @@ function AppointmentSection({
       >
         {title}
       </h2>
+
 
       <p
         className="
@@ -1163,7 +1006,7 @@ function AppointmentSection({
 
 
 /* =========================================================
-   TARJETA CITA
+   CITA
 ========================================================= */
 
 function AppointmentCard({
@@ -1191,10 +1034,7 @@ function AppointmentCard({
   return (
     <button
       type="button"
-
-      onClick={
-        onClick
-      }
+      onClick={onClick}
 
       className="
         flex
@@ -1205,17 +1045,19 @@ function AppointmentCard({
         rounded-2xl
 
         border
-        border-canwash-cream
+        border-white/50
 
-        bg-canwash-background
+        bg-canwash-background/70
 
         p-5
 
         text-left
 
+        backdrop-blur-sm
+
         transition
 
-        hover:border-canwash-light
+        hover:bg-canwash-background/90
         hover:shadow-lg
 
         sm:flex-row
@@ -1284,7 +1126,6 @@ function AppointmentCard({
             flex
             flex-col
             gap-3
-
             sm:flex-row
             sm:justify-between
           "
@@ -1311,7 +1152,8 @@ function AppointmentCard({
             >
               {appointment
                 .mascotas
-                ?.especie}
+                ?.especie ||
+                "Sin especie"}
 
               {appointment
                 .mascotas
@@ -1319,7 +1161,6 @@ function AppointmentCard({
                 ` · ${appointment.mascotas.raza}`}
             </span>
           </div>
-
 
           <StatusBadge
             status={
@@ -1348,10 +1189,14 @@ function AppointmentCard({
                   flex
                   items-center
                   gap-1
+
                   rounded-lg
-                  bg-white
+
+                  bg-white/70
+
                   px-3
                   py-2
+
                   text-xs
                   font-semibold
                   text-canwash-dark
@@ -1440,6 +1285,14 @@ function PaymentsView({
   appointments,
   totalPayments,
 }) {
+  const validatedPayments =
+    payments.filter(
+      (payment) =>
+        payment.estado ===
+        "VALIDADO"
+    ).length;
+
+
   return (
     <>
 
@@ -1448,10 +1301,12 @@ function PaymentsView({
           rounded-3xl
 
           bg-gradient-to-br
-          from-canwash-light
-          to-canwash-cream
+          from-canwash-light/80
+          to-canwash-cream/80
 
           p-8
+
+          backdrop-blur-sm
         "
       >
         <span
@@ -1484,10 +1339,13 @@ function PaymentsView({
           "
         >
           Consulta los pagos asociados
-          a tus citas.
+          a las citas que tienes
+          asignadas.
         </p>
       </section>
 
+
+      {/* CARDS */}
 
       <section
         className="
@@ -1498,20 +1356,18 @@ function PaymentsView({
           md:grid-cols-2
         "
       >
-        <StatCard
+        <Card
+          opacity={80}
           icon={<Banknote />}
           title="Pagos validados"
           value={
-            payments.filter(
-              (payment) =>
-                payment.estado ===
-                "VALIDADO"
-            ).length
+            validatedPayments
           }
           text="Registros validados"
         />
 
-        <StatCard
+        <Card
+          opacity={80}
           icon={<CreditCard />}
           title="Total registrado"
           value={
@@ -1527,11 +1383,17 @@ function PaymentsView({
       <section
         className="
           mt-5
+
           rounded-2xl
-          bg-white
+
+          bg-white/80
+
           p-6
+
           shadow-lg
           shadow-canwash-dark/5
+
+          backdrop-blur-sm
         "
       >
         <h2
@@ -1588,10 +1450,6 @@ function PaymentsView({
 }
 
 
-/* =========================================================
-   PAGO
-========================================================= */
-
 function PaymentRow({
   payment,
   appointment,
@@ -1621,7 +1479,7 @@ function PaymentRow({
           w-11
           place-items-center
           rounded-xl
-          bg-canwash-cream
+          bg-canwash-cream/80
           text-canwash-dark
         "
       >
@@ -1776,11 +1634,15 @@ function AppointmentModal({
         fixed
         inset-0
         z-[100]
+
         flex
         items-center
         justify-center
+
         bg-canwash-dark/50
+
         p-3
+
         backdrop-blur-sm
       "
     >
@@ -1792,11 +1654,18 @@ function AppointmentModal({
           max-h-[94dvh]
           w-full
           max-w-3xl
+
           overflow-y-auto
+
           rounded-2xl
-          bg-white
+
+          bg-white/95
+
           p-6
+
           shadow-2xl
+
+          backdrop-blur-md
         "
       >
 
@@ -2017,7 +1886,7 @@ function AppointmentModal({
 
 
 /* =========================================================
-   COMPONENTES PEQUEÑOS
+   AUXILIARES
 ========================================================= */
 
 function Info({
@@ -2050,7 +1919,7 @@ function ModalInfo({
     <div
       className="
         rounded-xl
-        bg-canwash-background
+        bg-canwash-background/80
         p-4
       "
     >
@@ -2087,7 +1956,7 @@ function PaymentSummary({
     <div
       className="
         rounded-xl
-        bg-canwash-background
+        bg-canwash-background/80
         p-4
       "
     >
@@ -2175,10 +2044,11 @@ function ErrorMessage({
         rounded-xl
         border
         border-red-200
-        bg-red-50
+        bg-red-50/80
         p-4
         text-sm
         text-red-700
+        backdrop-blur-sm
       "
     >
       <AlertCircle size={19} />

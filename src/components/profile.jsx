@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   AlertCircle,
+  CheckCircle2,
   KeyRound,
   Mail,
   MapPin,
@@ -15,9 +19,10 @@ import {
 
 import { supabase } from "../lib/supabase";
 
-import Sidebar from "../utils/sidebar";
-import MobileMenu from "../utils/mobileMenu";
+import Sidebar from "./sidebar";
+import MobileMenu from "./mobileMenu";
 import LocationMap from "./locationMap";
+import Card from "./card";
 
 
 function Profile({
@@ -32,8 +37,10 @@ function Profile({
   const [client, setClient] =
     useState(null);
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
+  const [
+    mobileMenuOpen,
+    setMobileMenuOpen,
+  ] = useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -47,6 +54,10 @@ function Profile({
   const [success, setSuccess] =
     useState("");
 
+
+  // =====================================================
+  // FORMULARIO
+  // =====================================================
 
   const [form, setForm] =
     useState({
@@ -63,8 +74,7 @@ function Profile({
   const role =
     user?.rol
       ?.trim()
-      .toUpperCase() ||
-    "";
+      .toUpperCase() || "";
 
 
   const isClient =
@@ -76,13 +86,26 @@ function Profile({
   // =====================================================
 
   const loadProfile = async () => {
+    if (!user?.id_usuario) {
+      setError(
+        "No se encontró el usuario."
+      );
+
+      setLoading(false);
+
+      return;
+    }
+
+
     setLoading(true);
     setError("");
+    setSuccess("");
 
 
     try {
       // ===============================================
-      // CLIENTE
+      // SOLO LOS CLIENTES TIENEN INFORMACIÓN
+      // EN LA TABLA CLIENTES
       // ===============================================
 
       if (isClient) {
@@ -139,7 +162,7 @@ function Profile({
 
 
       setError(
-        "No fue posible cargar tu perfil."
+        "No fue posible cargar la información del perfil."
       );
 
     } finally {
@@ -154,11 +177,14 @@ function Profile({
 
   useEffect(() => {
     loadProfile();
-  }, [user?.id_usuario]);
+  }, [
+    user?.id_usuario,
+    role,
+  ]);
 
 
   // =====================================================
-  // FORMULARIO
+  // CAMBIAR FORMULARIO
   // =====================================================
 
   const handleChange = (e) => {
@@ -170,6 +196,7 @@ function Profile({
 
     setForm((current) => ({
       ...current,
+
       [name]: value,
     }));
 
@@ -180,21 +207,38 @@ function Profile({
 
 
   // =====================================================
-  // GUARDAR PERFIL CLIENTE
+  // GUARDAR INFORMACIÓN
   // =====================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
 
+    // ===============================================
+    // POR AHORA SOLO CLIENTES
+    // ===============================================
+
     if (!isClient) {
       return;
     }
 
 
+    // ===============================================
+    // VALIDACIONES
+    // ===============================================
+
     if (!form.telefono.trim()) {
       setError(
-        "Ingresa tu teléfono."
+        "Ingresa tu número de teléfono."
+      );
+
+      return;
+    }
+
+
+    if (!form.colonia.trim()) {
+      setError(
+        "Ingresa tu colonia."
       );
 
       return;
@@ -208,7 +252,7 @@ function Profile({
 
     try {
       // ===============================================
-      // ACTUALIZAR
+      // PERFIL YA EXISTE
       // ===============================================
 
       if (client) {
@@ -221,12 +265,11 @@ function Profile({
               form.telefono.trim(),
 
             colonia:
-              form.colonia.trim() ||
-              null,
+              form.colonia.trim(),
 
             direccion:
-              form.direccion.trim() ||
-              null,
+              form.direccion
+                .trim() || null,
           })
           .eq(
             "id_cliente",
@@ -261,12 +304,11 @@ function Profile({
               form.telefono.trim(),
 
             colonia:
-              form.colonia.trim() ||
-              null,
+              form.colonia.trim(),
 
             direccion:
-              form.direccion.trim() ||
-              null,
+              form.direccion
+                .trim() || null,
 
             medio_contacto:
               "APP",
@@ -283,11 +325,20 @@ function Profile({
 
 
       setSuccess(
-        "Información actualizada correctamente."
+        "Tu información se guardó correctamente."
       );
 
 
+      // ===============================================
+      // ACTUALIZAR DATOS LOCALES
+      // ===============================================
+
       await loadProfile();
+
+
+      setSuccess(
+        "Tu información se guardó correctamente."
+      );
 
     } catch (saveError) {
       console.error(
@@ -307,7 +358,7 @@ function Profile({
 
 
   // =====================================================
-  // VOLVER
+  // VOLVER AL DASHBOARD
   // =====================================================
 
   const handleBack = () => {
@@ -340,30 +391,74 @@ function Profile({
           min-h-screen
           place-items-center
           bg-canwash-background
+          px-6
         "
       >
 
         <div className="text-center">
 
-          <PawPrint
-            size={45}
+          <div
             className="
               mx-auto
-              text-canwash
+
+              grid
+              h-20
+              w-20
+              place-items-center
+
+              rounded-3xl
+
+              bg-canwash-light
+              text-canwash-dark
+
+              shadow-lg
+              shadow-canwash/20
             "
-          />
+          >
+            <PawPrint size={42} />
+          </div>
 
 
           <h2
             className="
-              mt-4
-              text-xl
+              mt-6
+              text-2xl
               font-bold
               text-canwash-dark
             "
           >
             Cargando perfil...
           </h2>
+
+
+          <p
+            className="
+              mt-2
+              text-sm
+              text-canwash-muted
+            "
+          >
+            Preparando tu información.
+          </p>
+
+
+          <div
+            className="
+              mx-auto
+              mt-6
+
+              h-8
+              w-8
+
+              animate-spin
+
+              rounded-full
+
+              border-4
+              border-canwash-light
+              border-t-canwash-dark
+            "
+          />
 
         </div>
 
@@ -397,13 +492,22 @@ function Profile({
           mobileMenuOpen
         }
 
+        /*
+          Si el usuario pulsa Inicio, Citas, etc.
+          mientras está en Profile, volvemos primero
+          al dashboard.
+
+          Más adelante podemos mejorar esto para
+          conservar exactamente la vista elegida.
+        */
+
         onChangeView={
           handleBack
         }
 
-        onProfile={() => {
-          setMobileMenuOpen(false);
-        }}
+        onProfile={() =>
+          setMobileMenuOpen(false)
+        }
 
         onLogout={
           handleLogout
@@ -412,7 +516,7 @@ function Profile({
 
 
       {/* =================================================
-          MOBILE MENU
+          MENÚ MÓVIL
       ================================================== */}
 
       <MobileMenu
@@ -422,7 +526,8 @@ function Profile({
 
         onToggle={() =>
           setMobileMenuOpen(
-            (current) => !current
+            (current) =>
+              !current
           )
         }
 
@@ -497,6 +602,8 @@ function Profile({
           </div>
 
 
+          {/* ACTUALIZAR */}
+
           <button
             type="button"
 
@@ -505,30 +612,39 @@ function Profile({
             }
 
             className="
-              flex
-              items-center
-              gap-2
+              grid
+              h-11
+              w-11
+              place-items-center
 
               rounded-xl
 
               border
               border-canwash-light
 
-              bg-white
+              bg-white/80
 
-              px-4
-              py-2.5
-
-              text-sm
-              font-semibold
               text-canwash-dark
+
+              backdrop-blur-sm
 
               transition
 
-              hover:bg-canwash-cream
+              hover:bg-white
+
+              sm:flex
+              sm:w-auto
+              sm:gap-2
+              sm:px-4
+              sm:text-sm
+              sm:font-semibold
             "
           >
-            <RefreshCw size={17} />
+
+            <RefreshCw
+              size={18}
+            />
+
 
             <span
               className="
@@ -538,13 +654,14 @@ function Profile({
             >
               Actualizar
             </span>
+
           </button>
 
         </header>
 
 
         {/* =================================================
-            ENCABEZADO PERFIL
+            PORTADA DEL PERFIL
         ================================================== */}
 
         <section
@@ -555,13 +672,15 @@ function Profile({
             rounded-3xl
 
             bg-gradient-to-br
-            from-canwash-light
-            to-canwash-cream
+            from-canwash-light/80
+            to-canwash-cream/80
 
             p-6
 
             shadow-lg
             shadow-canwash-dark/5
+
+            backdrop-blur-sm
 
             sm:p-8
           "
@@ -600,6 +719,7 @@ function Profile({
                 text-white
 
                 shadow-lg
+                shadow-canwash-dark/20
               "
             >
               {user?.nombre
@@ -608,6 +728,8 @@ function Profile({
                 "U"}
             </div>
 
+
+            {/* DATOS */}
 
             <div>
 
@@ -646,7 +768,8 @@ function Profile({
                   text-canwash-muted
                 "
               >
-                {user?.email}
+                {user?.email ||
+                  "Sin correo"}
               </p>
 
 
@@ -670,17 +793,20 @@ function Profile({
                   text-canwash-dark
                 "
               >
+                <ShieldCheck
+                  size={15}
+                />
 
-                <ShieldCheck size={15} />
-
-                {role}
-
+                {role ||
+                  "USUARIO"}
               </span>
 
             </div>
 
           </div>
 
+
+          {/* DECORACIÓN */}
 
           <PawPrint
             className="
@@ -702,16 +828,18 @@ function Profile({
 
 
         {/* =================================================
-            MENSAJES
+            ERROR
         ================================================== */}
 
         {error && (
           <div
+            role="alert"
+
             className="
               mt-5
 
               flex
-              items-center
+              items-start
               gap-3
 
               rounded-xl
@@ -719,47 +847,83 @@ function Profile({
               border
               border-red-200
 
-              bg-red-50
+              bg-red-50/80
 
               p-4
 
               text-sm
               text-red-700
+
+              backdrop-blur-sm
             "
           >
-            <AlertCircle size={19} />
 
-            {error}
+            <AlertCircle
+              size={19}
+              className="
+                mt-0.5
+                shrink-0
+              "
+            />
+
+            <span>
+              {error}
+            </span>
+
           </div>
         )}
 
 
+        {/* =================================================
+            ÉXITO
+        ================================================== */}
+
         {success && (
           <div
+            role="status"
+
             className="
               mt-5
+
+              flex
+              items-start
+              gap-3
 
               rounded-xl
 
               border
               border-emerald-200
 
-              bg-emerald-50
+              bg-emerald-50/80
 
               p-4
 
               text-sm
               font-medium
               text-emerald-700
+
+              backdrop-blur-sm
             "
           >
-            {success}
+
+            <CheckCircle2
+              size={19}
+              className="
+                mt-0.5
+                shrink-0
+              "
+            />
+
+            <span>
+              {success}
+            </span>
+
           </div>
         )}
 
 
         {/* =================================================
-            GRID PRINCIPAL
+            CONTENIDO PRINCIPAL
         ================================================== */}
 
         <div
@@ -778,17 +942,9 @@ function Profile({
               INFORMACIÓN PERSONAL
           ================================================ */}
 
-          <section
+          <Card
+            opacity={80}
             className="
-              rounded-2xl
-
-              bg-white
-
-              p-6
-
-              shadow-lg
-              shadow-canwash-dark/5
-
               xl:col-span-2
             "
           >
@@ -872,11 +1028,26 @@ function Profile({
                 }
               />
 
+
+              {isClient && (
+                <ProfileInformation
+                  icon={
+                    <Phone size={19} />
+                  }
+
+                  label="Teléfono"
+
+                  value={
+                    form.telefono
+                  }
+                />
+              )}
+
             </div>
 
 
             {/* =============================================
-                CAMPOS CLIENTE
+                FORMULARIO CLIENTE
             ============================================== */}
 
             {isClient && (
@@ -885,7 +1056,14 @@ function Profile({
                   handleSubmit
                 }
 
-                className="mt-7"
+                className="
+                  mt-7
+
+                  border-t
+                  border-canwash-cream
+
+                  pt-2
+                "
               >
 
                 <div
@@ -902,37 +1080,25 @@ function Profile({
 
                   <div>
 
-                    <FormLabel>
+                    <FormLabel
+                      htmlFor="telefono"
+                    >
                       Teléfono
                     </FormLabel>
 
 
-                    <div
-                      className="
-                        flex
-                        items-center
-                        gap-3
-
-                        rounded-xl
-
-                        border
-                        border-canwash-light
-
-                        px-4
-
-                        focus-within:ring-4
-                        focus-within:ring-canwash/20
-                      "
+                    <InputContainer
+                      icon={
+                        <Phone size={19} />
+                      }
                     >
 
-                      <Phone
-                        size={19}
-                        className="text-canwash"
-                      />
-
-
                       <input
+                        id="telefono"
+
                         name="telefono"
+
+                        type="tel"
 
                         value={
                           form.telefono
@@ -949,7 +1115,7 @@ function Profile({
                         }
                       />
 
-                    </div>
+                    </InputContainer>
 
                   </div>
 
@@ -958,36 +1124,22 @@ function Profile({
 
                   <div>
 
-                    <FormLabel>
+                    <FormLabel
+                      htmlFor="colonia"
+                    >
                       Colonia
                     </FormLabel>
 
 
-                    <div
-                      className="
-                        flex
-                        items-center
-                        gap-3
-
-                        rounded-xl
-
-                        border
-                        border-canwash-light
-
-                        px-4
-
-                        focus-within:ring-4
-                        focus-within:ring-canwash/20
-                      "
+                    <InputContainer
+                      icon={
+                        <MapPin size={19} />
+                      }
                     >
 
-                      <MapPin
-                        size={19}
-                        className="text-canwash"
-                      />
-
-
                       <input
+                        id="colonia"
+
                         name="colonia"
 
                         value={
@@ -1005,21 +1157,27 @@ function Profile({
                         }
                       />
 
-                    </div>
+                    </InputContainer>
 
                   </div>
 
                 </div>
 
 
-                {/* DIRECCIÓN */}
+                {/* =========================================
+                    DIRECCIÓN
+                ========================================== */}
 
-                <FormLabel>
+                <FormLabel
+                  htmlFor="direccion"
+                >
                   Dirección
                 </FormLabel>
 
 
                 <textarea
+                  id="direccion"
+
                   name="direccion"
 
                   value={
@@ -1042,13 +1200,22 @@ function Profile({
                     border
                     border-canwash-light
 
+                    bg-white/70
+
                     px-4
-                    py-3
+                    py-3.5
 
                     text-sm
+                    leading-6
                     text-canwash-text
 
                     outline-none
+
+                    backdrop-blur-sm
+
+                    transition
+
+                    placeholder:text-slate-400
 
                     focus:border-canwash
                     focus:ring-4
@@ -1056,6 +1223,10 @@ function Profile({
                   "
                 />
 
+
+                {/* =========================================
+                    GUARDAR
+                ========================================== */}
 
                 <button
                   type="submit"
@@ -1077,21 +1248,28 @@ function Profile({
                     bg-canwash
 
                     px-5
-                    py-3
+                    py-3.5
 
                     text-sm
                     font-semibold
                     text-white
 
+                    shadow-lg
+                    shadow-canwash/20
+
                     transition
 
+                    hover:-translate-y-0.5
                     hover:bg-[#7899A4]
 
+                    disabled:cursor-not-allowed
+                    disabled:translate-y-0
                     disabled:opacity-60
                   "
                 >
 
                   <Save size={18} />
+
 
                   {saving
                     ? "Guardando..."
@@ -1102,25 +1280,14 @@ function Profile({
               </form>
             )}
 
-          </section>
+          </Card>
 
 
           {/* ===============================================
               SEGURIDAD
           ================================================ */}
 
-          <section
-            className="
-              rounded-2xl
-
-              bg-white
-
-              p-6
-
-              shadow-lg
-              shadow-canwash-dark/5
-            "
-          >
+          <Card opacity={80}>
 
             <div
               className="
@@ -1131,7 +1298,7 @@ function Profile({
 
                 rounded-xl
 
-                bg-canwash-cream
+                bg-canwash-cream/80
                 text-canwash-dark
               "
             >
@@ -1161,15 +1328,18 @@ function Profile({
               "
             >
               Administra las credenciales
-              y seguridad de tu cuenta.
+              y la seguridad de tu cuenta.
             </p>
 
+
+            {/* FUTURA FUNCIÓN */}
 
             <button
               type="button"
 
               className="
                 mt-6
+
                 w-full
 
                 rounded-xl
@@ -1191,24 +1361,20 @@ function Profile({
               Cambiar contraseña
             </button>
 
-          </section>
+          </Card>
 
         </div>
 
 
         {/* =================================================
             UBICACIÓN
-            SOLO CLIENTE
+            SOLO PARA CLIENTES
         ================================================== */}
 
         {isClient && (
           <section className="mt-6">
 
-            <div
-              className="
-                mb-4
-              "
-            >
+            <div className="mb-4">
 
               <span
                 className="
@@ -1237,18 +1403,24 @@ function Profile({
               <p
                 className="
                   mt-1
+                  max-w-2xl
+
                   text-sm
+                  leading-6
                   text-canwash-muted
                 "
               >
-                Utiliza tu ubicación para
-                facilitar la llegada de
-                Can Wash durante el
-                servicio.
+                Permite el acceso a tu
+                ubicación para visualizar
+                tu posición en el mapa.
               </p>
 
             </div>
 
+
+            {/* =============================================
+                LEAFLET
+            ============================================== */}
 
             <LocationMap />
 
@@ -1263,7 +1435,7 @@ function Profile({
 
 
 /* =========================================================
-   INFORMACIÓN
+   INFORMACIÓN DEL PERFIL
 ========================================================= */
 
 function ProfileInformation({
@@ -1280,9 +1452,11 @@ function ProfileInformation({
 
         rounded-xl
 
-        bg-canwash-background
+        bg-canwash-background/70
 
         p-4
+
+        backdrop-blur-sm
       "
     >
 
@@ -1296,7 +1470,7 @@ function ProfileInformation({
 
           rounded-lg
 
-          bg-white
+          bg-white/70
           text-canwash
         "
       >
@@ -1343,14 +1517,71 @@ function ProfileInformation({
 
 
 /* =========================================================
+   INPUT
+========================================================= */
+
+function InputContainer({
+  icon,
+  children,
+}) {
+  return (
+    <div
+      className="
+        flex
+        min-h-12
+        items-center
+        gap-3
+
+        rounded-xl
+
+        border
+        border-canwash-light
+
+        bg-white/70
+
+        px-4
+
+        backdrop-blur-sm
+
+        transition
+
+        focus-within:border-canwash
+        focus-within:ring-4
+        focus-within:ring-canwash/20
+      "
+    >
+
+      <span
+        className="
+          shrink-0
+          text-canwash
+        "
+      >
+        {icon}
+      </span>
+
+
+      {children}
+
+    </div>
+  );
+}
+
+
+/* =========================================================
    LABEL
 ========================================================= */
 
 function FormLabel({
+  htmlFor,
   children,
 }) {
   return (
     <label
+      htmlFor={
+        htmlFor
+      }
+
       className="
         mb-2
         mt-5
@@ -1367,15 +1598,28 @@ function FormLabel({
 }
 
 
+/* =========================================================
+   CLASE INPUT
+========================================================= */
+
 const innerInputClasses = `
   min-w-0
   flex-1
+
   border-none
+
   bg-transparent
+
   py-3.5
+
   text-sm
   text-canwash-text
+
   outline-none
+
+  placeholder:text-slate-400
+
+  focus:ring-0
 `;
 
 
