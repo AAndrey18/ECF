@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -14,12 +15,13 @@ import {
   PawPrint,
   Plus,
   RefreshCw,
-  Save,
   Scissors,
-  X,
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
+
+import PetForm from "./pets/PetForm";
+import PetsPanel from "./pets/PetsPanel";
 
 import Sidebar from "../utils/sidebar";
 import MobileMenu from "../utils/mobileMenu";
@@ -76,8 +78,9 @@ function ClientDashboard({
   // CARGAR DATOS
   // =====================================================
 
-  const loadData = async () => {
-    if (!user?.id_usuario) {
+  const userId = user?.id_usuario;
+  const loadData = useCallback(async () => {
+    if (!userId) {
       setError(
         "No se encontró el usuario autenticado."
       );
@@ -114,7 +117,7 @@ function ClientDashboard({
         `)
         .eq(
           "id_usuario",
-          user.id_usuario
+          userId
         )
         .maybeSingle();
 
@@ -143,19 +146,7 @@ function ClientDashboard({
         error: petsError,
       } = await supabase
         .from("mascotas")
-        .select(`
-          id_mascota,
-          id_cliente,
-          nombre,
-          especie,
-          raza,
-          tamano,
-          peso_kg,
-          padecimientos,
-          comportamiento,
-          notas,
-          fecha_registro
-        `)
+        .select("*")
         .eq(
           "id_cliente",
           clientData.id_cliente
@@ -259,7 +250,7 @@ function ClientDashboard({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
 
   // =====================================================
@@ -267,8 +258,8 @@ function ClientDashboard({
   // =====================================================
 
   useEffect(() => {
-    loadData();
-  }, [user?.id_usuario]);
+    Promise.resolve().then(loadData);
+  }, [loadData]);
 
 
   // =====================================================
@@ -675,15 +666,7 @@ function ClientDashboard({
             )}
 
 
-            <PetSection
-              pets={pets}
-              onAdd={
-                openPetRegistration
-              }
-              onSelectPet={
-                setSelectedPet
-              }
-            />
+            <PetsPanel pets={pets} onAdd={openPetRegistration} onEdit={setSelectedPet} />
 
 
             {upcomingAppointments.length >
@@ -704,15 +687,7 @@ function ClientDashboard({
         ============================================== */}
 
         {view === "mascotas" && (
-          <PetSection
-            pets={pets}
-            onAdd={
-              openPetRegistration
-            }
-            onSelectPet={
-              setSelectedPet
-            }
-          />
+          <PetsPanel pets={pets} onAdd={openPetRegistration} onEdit={setSelectedPet} />
         )}
 
 
@@ -735,35 +710,12 @@ function ClientDashboard({
           MODAL REGISTRAR MASCOTA
       ================================================ */}
 
-      {showPetModal && client && (
-        <PetModal
-          client={client}
-
-          onClose={() =>
-            setShowPetModal(false)
-          }
-
-          onSaved={() => {
-            setShowPetModal(false);
-            loadData();
-          }}
-        />
+      {(showPetModal || selectedPet) && client && (
+        <PetForm key={selectedPet?.id_mascota || 'new'} clientId={client.id_cliente} pet={selectedPet}
+          onClose={() => { setShowPetModal(false); setSelectedPet(null); }}
+          onSaved={() => { setShowPetModal(false); setSelectedPet(null); loadData(); }} />
       )}
 
-
-      {/* ===============================================
-          DETALLE MASCOTA
-      ================================================ */}
-
-      {selectedPet && (
-        <PetDetailsModal
-          pet={selectedPet}
-
-          onClose={() =>
-            setSelectedPet(null)
-          }
-        />
-      )}
     </div>
   );
 }
@@ -909,294 +861,6 @@ function Topbar({
 
 /* =========================================================
    MASCOTAS
-========================================================= */
-
-function PetSection({
-  pets,
-  onAdd,
-  onSelectPet,
-}) {
-  return (
-    <section
-      className="
-        mt-5
-        rounded-2xl
-        bg-white/80
-        p-5
-        shadow-lg
-        shadow-canwash-dark/5
-        backdrop-blur-sm
-        sm:p-7
-      "
-    >
-      <div
-        className="
-          flex
-          flex-col
-          gap-4
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
-        "
-      >
-        <div>
-          <h2
-            className="
-              text-xl
-              font-bold
-              text-canwash-dark
-            "
-          >
-            Mis mascotas
-          </h2>
-
-          <p
-            className="
-              mt-1
-              text-sm
-              text-canwash-muted
-            "
-          >
-            Mascotas registradas para
-            recibir servicios de Can Wash.
-          </p>
-        </div>
-
-
-        <button
-          type="button"
-          onClick={onAdd}
-          className="
-            flex
-            items-center
-            justify-center
-            gap-2
-            rounded-xl
-            bg-canwash
-            px-4
-            py-3
-            text-sm
-            font-semibold
-            text-white
-            transition
-            hover:bg-[#7899A4]
-          "
-        >
-          <Plus size={18} />
-          Registrar mascota
-        </button>
-      </div>
-
-
-      {pets.length === 0 ? (
-        <EmptyState
-          icon={
-            <PawPrint size={45} />
-          }
-          title="No tienes mascotas registradas"
-          text="Registra al perro o gato que recibirá el servicio."
-        />
-      ) : (
-        <div
-          className="
-            mt-6
-            grid
-            grid-cols-1
-            gap-4
-            sm:grid-cols-2
-            xl:grid-cols-3
-          "
-        >
-          {pets.map((pet) => (
-            <PetCard
-              key={pet.id_mascota}
-              pet={pet}
-              onClick={() =>
-                onSelectPet(pet)
-              }
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-
-function PetCard({
-  pet,
-  onClick,
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="
-        group
-        w-full
-        rounded-2xl
-        border
-        border-white/50
-        bg-canwash-background/70
-        p-5
-        text-left
-        backdrop-blur-sm
-        transition
-        hover:-translate-y-1
-        hover:bg-canwash-background/90
-        hover:shadow-lg
-      "
-    >
-      <div
-        className="
-          grid
-          h-14
-          w-14
-          place-items-center
-          rounded-xl
-          bg-canwash-light/80
-          text-canwash-dark
-          transition
-          group-hover:bg-canwash
-          group-hover:text-white
-        "
-      >
-        {pet.especie === "GATO" ? (
-          <PawPrint size={29} />
-        ) : (
-          <Dog size={29} />
-        )}
-      </div>
-
-
-      <h3
-        className="
-          mt-4
-          text-lg
-          font-bold
-          text-canwash-dark
-        "
-      >
-        {pet.nombre}
-      </h3>
-
-      <span
-        className="
-          mt-1
-          block
-          text-[10px]
-          font-semibold
-          tracking-[0.15em]
-          text-canwash-muted
-        "
-      >
-        {pet.especie}
-      </span>
-
-
-      <div
-        className="
-          mt-5
-          grid
-          grid-cols-2
-          gap-2
-        "
-      >
-        <PetData
-          title="Raza"
-          value={
-            pet.raza ||
-            "Sin especificar"
-          }
-        />
-
-        <PetData
-          title="Tamaño"
-          value={
-            pet.tamano ||
-            "Sin especificar"
-          }
-        />
-
-        {pet.peso_kg && (
-          <PetData
-            title="Peso"
-            value={
-              `${pet.peso_kg} kg`
-            }
-          />
-        )}
-      </div>
-
-
-      {pet.padecimientos && (
-        <div
-          className="
-            mt-4
-            flex
-            items-start
-            gap-2
-            rounded-xl
-            bg-amber-50/80
-            p-3
-            text-xs
-            leading-5
-            text-amber-800
-          "
-        >
-          <AlertCircle
-            size={16}
-            className="shrink-0"
-          />
-
-          {pet.padecimientos}
-        </div>
-      )}
-    </button>
-  );
-}
-
-
-function PetData({
-  title,
-  value,
-}) {
-  return (
-    <div
-      className="
-        rounded-xl
-        bg-white/70
-        p-3
-      "
-    >
-      <span
-        className="
-          block
-          text-[10px]
-          text-canwash-muted
-        "
-      >
-        {title}
-      </span>
-
-      <strong
-        className="
-          mt-1
-          block
-          truncate
-          text-xs
-          text-canwash-dark
-        "
-      >
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-
-/* =========================================================
-   CITAS
 ========================================================= */
 
 function AppointmentsSection({
@@ -1466,419 +1130,6 @@ function AppointmentCard({
    REGISTRAR MASCOTA
 ========================================================= */
 
-function PetModal({
-  client,
-  onClose,
-  onSaved,
-}) {
-  const [form, setForm] =
-    useState({
-      nombre: "",
-      especie: "PERRO",
-      raza: "",
-      tamano: "MEDIANO",
-      peso_kg: "",
-      padecimientos: "",
-      comportamiento: "",
-      notas: "",
-    });
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [formError, setFormError] =
-    useState("");
-
-
-  const handleChange = (e) => {
-    setForm((current) => ({
-      ...current,
-      [e.target.name]:
-        e.target.value,
-    }));
-
-    setFormError("");
-  };
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!form.nombre.trim()) {
-      setFormError(
-        "Ingresa el nombre de tu mascota."
-      );
-
-      return;
-    }
-
-    setSaving(true);
-    setFormError("");
-
-    try {
-      const {
-        error: insertError,
-      } = await supabase
-        .from("mascotas")
-        .insert({
-          id_cliente:
-            client.id_cliente,
-
-          nombre:
-            form.nombre.trim(),
-
-          especie:
-            form.especie,
-
-          raza:
-            form.raza.trim() ||
-            null,
-
-          tamano:
-            form.tamano,
-
-          peso_kg:
-            form.peso_kg
-              ? Number(
-                  form.peso_kg
-                )
-              : null,
-
-          padecimientos:
-            form.padecimientos
-              .trim() ||
-            null,
-
-          comportamiento:
-            form.comportamiento
-              .trim() ||
-            null,
-
-          notas:
-            form.notas
-              .trim() ||
-            null,
-        });
-
-
-      if (insertError) {
-        throw insertError;
-      }
-
-
-      onSaved();
-
-    } catch (saveError) {
-      console.error(
-        "Error registrando mascota:",
-        saveError
-      );
-
-      setFormError(
-        "No fue posible registrar la mascota."
-      );
-
-    } finally {
-      setSaving(false);
-    }
-  };
-
-
-  return (
-    <ModalBackground
-      onClose={onClose}
-    >
-      <ModalHeader
-        label="CAN WASH"
-        title="Registrar mascota"
-        onClose={onClose}
-      />
-
-
-      <form onSubmit={handleSubmit}>
-        <div
-          className="
-            grid
-            grid-cols-1
-            gap-x-5
-            sm:grid-cols-2
-          "
-        >
-          <div>
-            <FormLabel>
-              Nombre *
-            </FormLabel>
-
-            <input
-              name="nombre"
-              value={form.nombre}
-              onChange={handleChange}
-              className={inputClasses}
-            />
-          </div>
-
-
-          <div>
-            <FormLabel>
-              Especie
-            </FormLabel>
-
-            <select
-              name="especie"
-              value={form.especie}
-              onChange={handleChange}
-              className={inputClasses}
-            >
-              <option value="PERRO">
-                Perro
-              </option>
-
-              <option value="GATO">
-                Gato
-              </option>
-            </select>
-          </div>
-
-
-          <div>
-            <FormLabel>
-              Raza
-            </FormLabel>
-
-            <input
-              name="raza"
-              value={form.raza}
-              onChange={handleChange}
-              className={inputClasses}
-            />
-          </div>
-
-
-          <div>
-            <FormLabel>
-              Tamaño
-            </FormLabel>
-
-            <select
-              name="tamano"
-              value={form.tamano}
-              onChange={handleChange}
-              className={inputClasses}
-            >
-              <option value="CHICO">
-                Chico
-              </option>
-
-              <option value="MEDIANO">
-                Mediano
-              </option>
-
-              <option value="GRANDE">
-                Grande
-              </option>
-
-              <option value="GIGANTE">
-                Gigante
-              </option>
-            </select>
-          </div>
-
-
-          <div>
-            <FormLabel>
-              Peso
-            </FormLabel>
-
-            <input
-              name="peso_kg"
-              type="number"
-              min="0"
-              step="0.1"
-              value={form.peso_kg}
-              onChange={handleChange}
-              className={inputClasses}
-            />
-          </div>
-        </div>
-
-
-        <FormLabel>
-          Padecimientos
-        </FormLabel>
-
-        <textarea
-          name="padecimientos"
-          value={
-            form.padecimientos
-          }
-          onChange={handleChange}
-          className={
-            textareaClasses
-          }
-        />
-
-
-        <FormLabel>
-          Comportamiento
-        </FormLabel>
-
-        <textarea
-          name="comportamiento"
-          value={
-            form.comportamiento
-          }
-          onChange={handleChange}
-          className={
-            textareaClasses
-          }
-        />
-
-
-        <FormLabel>
-          Observaciones
-        </FormLabel>
-
-        <textarea
-          name="notas"
-          value={form.notas}
-          onChange={handleChange}
-          className={
-            textareaClasses
-          }
-        />
-
-
-        {formError && (
-          <FormError>
-            {formError}
-          </FormError>
-        )}
-
-
-        <SubmitButton
-          loading={saving}
-          text="Registrar mascota"
-          loadingText="Registrando..."
-        />
-      </form>
-    </ModalBackground>
-  );
-}
-
-
-/* =========================================================
-   DETALLE MASCOTA
-========================================================= */
-
-function PetDetailsModal({
-  pet,
-  onClose,
-}) {
-  return (
-    <ModalBackground
-      onClose={onClose}
-    >
-      <ModalHeader
-        label="MASCOTA"
-        title={pet.nombre}
-        onClose={onClose}
-      />
-
-
-      <div
-        className="
-          mx-auto
-          mt-6
-          grid
-          h-20
-          w-20
-          place-items-center
-          rounded-2xl
-          bg-canwash-light
-          text-canwash-dark
-        "
-      >
-        {pet.especie === "GATO" ? (
-          <PawPrint size={42} />
-        ) : (
-          <Dog size={42} />
-        )}
-      </div>
-
-
-      <div
-        className="
-          mt-6
-          grid
-          grid-cols-1
-          gap-3
-          sm:grid-cols-2
-        "
-      >
-        <Detail
-          title="Especie"
-          value={pet.especie}
-        />
-
-        <Detail
-          title="Raza"
-          value={
-            pet.raza ||
-            "Sin especificar"
-          }
-        />
-
-        <Detail
-          title="Tamaño"
-          value={
-            pet.tamano ||
-            "Sin especificar"
-          }
-        />
-
-        <Detail
-          title="Peso"
-          value={
-            pet.peso_kg
-              ? `${pet.peso_kg} kg`
-              : "Sin especificar"
-          }
-        />
-      </div>
-
-
-      <DetailSection
-        title="Padecimientos"
-        text={
-          pet.padecimientos ||
-          "No se registraron padecimientos."
-        }
-      />
-
-      <DetailSection
-        title="Comportamiento"
-        text={
-          pet.comportamiento ||
-          "Sin observaciones."
-        }
-      />
-
-      <DetailSection
-        title="Observaciones"
-        text={
-          pet.notas ||
-          "Sin observaciones."
-        }
-      />
-    </ModalBackground>
-  );
-}
-
-
-/* =========================================================
-   UI AUXILIAR
-========================================================= */
-
 function ErrorMessage({
   children,
 }) {
@@ -1943,256 +1194,6 @@ function EmptyState({
           mt-2
           text-sm
           text-canwash-muted
-        "
-      >
-        {text}
-      </p>
-    </div>
-  );
-}
-
-
-function ModalBackground({
-  children,
-  onClose,
-}) {
-  return (
-    <div
-      onClick={onClose}
-      className="
-        fixed
-        inset-0
-        z-[100]
-        flex
-        items-center
-        justify-center
-        bg-canwash-dark/50
-        p-3
-        backdrop-blur-sm
-      "
-    >
-      <div
-        onClick={(e) =>
-          e.stopPropagation()
-        }
-        className="
-          max-h-[94dvh]
-          w-full
-          max-w-2xl
-          overflow-y-auto
-          rounded-2xl
-          bg-white/95
-          p-5
-          shadow-2xl
-          sm:p-7
-        "
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-
-function ModalHeader({
-  label,
-  title,
-  onClose,
-}) {
-  return (
-    <div
-      className="
-        flex
-        justify-between
-        gap-5
-        border-b
-        border-canwash-cream
-        pb-5
-      "
-    >
-      <div>
-        <span
-          className="
-            text-[10px]
-            font-bold
-            tracking-[0.2em]
-            text-canwash-muted
-          "
-        >
-          {label}
-        </span>
-
-        <h2
-          className="
-            mt-1
-            text-2xl
-            font-bold
-            text-canwash-dark
-          "
-        >
-          {title}
-        </h2>
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="
-          grid
-          h-10
-          w-10
-          place-items-center
-          rounded-xl
-          bg-canwash-background
-        "
-      >
-        <X size={20} />
-      </button>
-    </div>
-  );
-}
-
-
-function FormLabel({
-  children,
-}) {
-  return (
-    <label
-      className="
-        mb-2
-        mt-5
-        block
-        text-sm
-        font-semibold
-        text-canwash-dark
-      "
-    >
-      {children}
-    </label>
-  );
-}
-
-
-function FormError({
-  children,
-}) {
-  return (
-    <div
-      className="
-        mt-5
-        rounded-xl
-        border
-        border-red-200
-        bg-red-50
-        p-4
-        text-sm
-        text-red-700
-      "
-    >
-      {children}
-    </div>
-  );
-}
-
-
-function SubmitButton({
-  loading,
-  text,
-  loadingText,
-}) {
-  return (
-    <button
-      type="submit"
-      disabled={loading}
-      className="
-        mt-6
-        flex
-        w-full
-        items-center
-        justify-center
-        gap-2
-        rounded-xl
-        bg-canwash
-        px-5
-        py-4
-        font-semibold
-        text-white
-        transition
-        hover:bg-[#7899A4]
-        disabled:opacity-60
-      "
-    >
-      <Save size={18} />
-
-      {loading
-        ? loadingText
-        : text}
-    </button>
-  );
-}
-
-
-function Detail({
-  title,
-  value,
-}) {
-  return (
-    <div
-      className="
-        rounded-xl
-        bg-canwash-background/80
-        p-4
-      "
-    >
-      <span
-        className="
-          text-[10px]
-          text-canwash-muted
-        "
-      >
-        {title}
-      </span>
-
-      <strong
-        className="
-          mt-1
-          block
-          text-sm
-          text-canwash-dark
-        "
-      >
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-
-function DetailSection({
-  title,
-  text,
-}) {
-  return (
-    <div className="mt-6">
-      <h3
-        className="
-          border-b
-          border-canwash-cream
-          pb-2
-          text-sm
-          font-bold
-          text-canwash-dark
-        "
-      >
-        {title}
-      </h3>
-
-      <p
-        className="
-          mt-3
-          text-sm
-          leading-6
-          text-canwash-text
         "
       >
         {text}
@@ -2292,42 +1293,6 @@ function formatTime(time) {
     ? time.toString().slice(0, 5)
     : "";
 }
-
-
-const inputClasses = `
-  w-full
-  rounded-xl
-  border
-  border-canwash-light
-  bg-white/80
-  px-4
-  py-3.5
-  text-sm
-  text-canwash-text
-  outline-none
-  focus:border-canwash
-  focus:ring-4
-  focus:ring-canwash/20
-`;
-
-
-const textareaClasses = `
-  min-h-28
-  w-full
-  resize-y
-  rounded-xl
-  border
-  border-canwash-light
-  bg-white/80
-  px-4
-  py-3.5
-  text-sm
-  text-canwash-text
-  outline-none
-  focus:border-canwash
-  focus:ring-4
-  focus:ring-canwash/20
-`;
 
 
 export default ClientDashboard;
