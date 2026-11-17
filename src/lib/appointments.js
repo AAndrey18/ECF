@@ -15,3 +15,15 @@ export function paymentTotals(payments=[]) {
 }
 export const stateLabels = {PENDIENTE:'Pendiente de confirmación',PENDIENTE_VALORACION:'Pendiente de valoración',CONFIRMADA:'Confirmada',EN_PROCESO:'En atención',COMPLETADA:'Completada',CANCELADA:'Cancelada',VALIDADO:'Validado',RECHAZADO:'Rechazado',REPROGRAMADA:'Reprogramada'};
 export const editableStates = ['PENDIENTE','PENDIENTE_VALORACION','CONFIRMADA'];
+export function toBusinessInstant(value,zone=BUSINESS_ZONE) {
+  const numbers=value.split(/[-T:]/).map(Number);
+  const wanted=Date.UTC(numbers[0],numbers[1]-1,numbers[2],numbers[3],numbers[4]);
+  let instant=wanted;
+  const formatter=new Intl.DateTimeFormat('en',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+  for(let i=0;i<3;i++){
+    const parts=formatter.formatToParts(new Date(instant));const part=k=>Number(parts.find(p=>p.type===k).value);
+    const represented=Date.UTC(part('year'),part('month')-1,part('day'),part('hour'),part('minute'),part('second'));
+    instant=wanted-(represented-instant);
+  }
+  return new Date(instant).toISOString();
+}

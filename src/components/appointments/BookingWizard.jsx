@@ -7,6 +7,7 @@ import { message } from '../../services/api';
 import { dateKey, dateLabel, duration, money, timeLabel } from '../../lib/appointments';
 import { Button, Empty, Field, Modal, Notice } from '../ui';
 import QuoteSummary from './QuoteSummary';
+import PetServiceChoice from './PetServiceChoice';
 
 const pendingKey=clientId=>`canwash:reserva-pendiente:${clientId}`;
 function readPending(clientId) {try {return JSON.parse(sessionStorage.getItem(pendingKey(clientId)) || 'null');} catch {return null;}}
@@ -56,14 +57,7 @@ export default function BookingWizard({ client, pets, onClose, onReserved, onMan
         {catalog.loading && <p className="text-sm text-canwash-muted">Cargando servicios…</p>}
         {pets.map(pet=>{const chosen=selection[pet.id_mascota];return <section key={pet.id_mascota} className={`rounded-2xl border p-4 ${chosen?'border-canwash bg-canwash-background/50':'border-canwash-light/50'}`}>
           <label className="flex cursor-pointer items-center gap-3"><input type="checkbox" checked={Boolean(chosen)} onChange={()=>togglePet(pet)} className="h-5 w-5 accent-canwash-dark" /><span><strong className="block text-canwash-dark">{pet.nombre}</strong><span className="text-xs text-canwash-muted">{pet.especie==='GATO'?'Gato':pet.tamano} · {pet.raza || 'Raza sin especificar'}</span></span></label>
-          {chosen && <div className="mt-4 space-y-4"><Field label={`Servicio para ${pet.nombre}`}><select className="cw-input" value={chosen.paquete} onChange={e=>editSelection(pet.id_mascota,{paquete:e.target.value,extras:[]})}>{catalog.data?.services.filter(s=>s.tipo!=='EXTRA').map(s=><option key={s.codigo} value={s.codigo} disabled={(pet.estado_pelaje==='ENREDADO' && s.codigo==='BANO_INTEGRAL') || (pet.estado_pelaje==='APELMAZADO' && s.codigo==='BANO_DESENREDADO')}>{s.nombre}</option>)}</select></Field>
-            {chosen.paquete!=='GARRAS' && <fieldset className="grid gap-2 sm:grid-cols-2"><legend className="mb-2 text-sm font-semibold text-canwash-dark">Extras para {pet.nombre}</legend>{catalog.data?.services.filter(s=>s.tipo==='EXTRA').map(extra=>{
-              const automatic=(extra.codigo==='DOBLE_CAPA'&&pet.tipo_capa==='DOBLE')||(extra.codigo==='MANEJO_DIFICIL'&&pet.manejo_dificil)||(extra.codigo==='CASO_EXTREMO'&&pet.estado_pelaje==='APELMAZADO');
-              const incompatible=(extra.codigo==='DOBLE_CAPA'&&pet.tipo_capa!=='DOBLE')||(extra.codigo==='CASO_EXTREMO'&&chosen.paquete==='BANO_DESENREDADO');
-              const price=catalog.data.prices.find(p=>p.id_servicio===extra.id_servicio && p.especie==null);
-              return <label key={extra.codigo} className={`flex items-start gap-2 rounded-xl border border-canwash-light/40 p-3 text-sm ${incompatible?'opacity-40':''}`}><input type="checkbox" checked={automatic||chosen.extras.includes(extra.codigo)} disabled={automatic||incompatible} onChange={e=>editSelection(pet.id_mascota,{extras:e.target.checked?[...chosen.extras,extra.codigo]:chosen.extras.filter(x=>x!==extra.codigo)})} className="mt-1 accent-canwash-dark"/><span>{extra.nombre} {price&&`+${money(price.precio)}`}{automatic&&<span className="block text-xs text-canwash-muted">Se agrega por su perfil</span>}</span></label>;
-            })}</fieldset>}
-          </div>}
+          {chosen && <PetServiceChoice pet={pet} catalog={catalog.data} value={chosen} onChange={patch=>editSelection(pet.id_mascota,patch)}/>}
         </section>;})}
         {incomplete && <Notice>Hay datos de peso o pelaje pendientes. <button className="font-semibold underline" onClick={onManagePets}>Completar perfiles de mascotas</button></Notice>}
       </div>}
