@@ -11,7 +11,7 @@ export const findSlots = (date,address,pets) => rpc('horarios_disponibles',{p_fe
 export const reserveVisit = parameters => rpc('reservar_visita',parameters);
 export const findReservation = request => result(supabase.from('visitas').select('id_visita').eq('solicitud',request).maybeSingle());
 export function listVisits(clientId) {
-  let query=supabase.from('visitas').select('*, agenda_estilistas(*,estilistas(nombre,id_usuario)), citas(*,detalle_cita(*)), pagos(*)').order('fecha_creacion',{ascending:false});
+  let query=supabase.from('visitas').select('*, clientes(nombre,telefono,email), agenda_estilistas(*,estilistas(nombre,id_usuario)), citas(*,detalle_cita(*)), pagos(*)').order('fecha_creacion',{ascending:false});
   if (clientId) query=query.eq('id_cliente',clientId);
   return result(query);
 }

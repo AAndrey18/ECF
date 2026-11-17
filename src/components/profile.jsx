@@ -340,9 +340,9 @@ function Profile({
   // NAVEGACIÓN
   // =====================================================
 
-  const handleBack = () => {
+  const handleBack = (view) => {
     setMobileMenuOpen(false);
-    onBack?.();
+    onBack?.(typeof view === "string" ? view : undefined);
   };
 
 
