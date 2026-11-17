@@ -12,7 +12,7 @@ assert.ok(process.env.CANWASH_TEST_SERVICE_KEY, 'Pass the local service role key
 const options = { auth: { persistSession: false, autoRefreshToken: false } };
 const root = createClient(url, process.env.CANWASH_TEST_SERVICE_KEY, options);
 const accounts = []; const clientIds = []; const agendaIds = []; const tariffRestores = [];
-let oldStylist; let passed = 0;
+let oldStylist; let savedAssignments = []; let passed = 0;
 const ok = async promise => { const result = await promise; if (result.error) throw new Error(result.error.message + ' [' + result.error.code + ']'); return result.data; };
 const fails = async (promise, code) => { const result = await promise; assert.ok(result.error, 'Expected rejection'); if(code) assert.equal(result.error.code,code,result.error.message); return result.error; };
 const test = (name, fn) => fn().then(() => { passed++; console.log('PASS ' + name); });
@@ -41,6 +41,9 @@ try {
   const adminProfile=await ok(admin.api.from('usuarios').select('rol').single());assert.equal(adminProfile.rol,'CLIENTE');
   await ok(root.from('usuarios').update({rol:'ADMIN'}).eq('id_usuario',admin.id));
   oldStylist=await ok(root.from('estilistas').select('*').eq('activo',true).single());
+  // Assigning a stylist also updates existing active appointments. Preserve
+  // their original owners so tests can run alongside the local demo fixtures.
+  savedAssignments=await ok(root.from('citas').select('id_cita,id_usuario'));
   await ok(admin.api.rpc('asignar_cuenta_estilista',{p_id_usuario:staff.id}));
   const ca=await ok(owner.api.from('clientes').insert({id_usuario:owner.id,nombre:'Cliente prueba A',telefono:'0000000000'}).select().single());clientIds.push(ca.id_cliente);
   const cb=await ok(stranger.api.from('clientes').insert({id_usuario:stranger.id,nombre:'Cliente prueba B',telefono:'0000000000'}).select().single());clientIds.push(cb.id_cliente);
@@ -209,7 +212,16 @@ try {
     await ok(root.from('direcciones_cliente').delete().in('id_cliente',clientIds));
     await ok(root.from('mascotas').delete().in('id_cliente',clientIds));await ok(root.from('clientes').delete().in('id_cliente',clientIds));
   }
+  for(const original of savedAssignments){
+    await ok(root.from('citas').update({id_usuario:original.id_usuario})
+      .eq('id_cita',original.id_cita).eq('id_usuario',staff.id));
+  }
   if(oldStylist)await ok(root.from('estilistas').update({id_usuario:oldStylist.id_usuario}).eq('id_estilista',oldStylist.id_estilista));
+  if(savedAssignments.length){
+    const restored=await ok(root.from('citas').select('id_cita,id_usuario').in('id_cita',savedAssignments.map(c=>c.id_cita)).order('id_cita'));
+    assert.deepEqual(restored,[...savedAssignments].sort((a,b)=>a.id_cita-b.id_cita),'Existing appointments must keep their original assigned accounts');
+    console.log('Existing appointment assignments preserved.');
+  }
   for(const id of accounts)await ok(root.auth.admin.deleteUser(id));
   console.log('Synthetic accounts, reservations and payments removed.');
 }
