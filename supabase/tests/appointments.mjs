@@ -117,6 +117,10 @@ try {
     const tariff=await ok(root.from('precios_servicio').select('*,servicios!inner(codigo)').eq('servicios.codigo','BANO_INTEGRAL').eq('especie','PERRO').eq('tamano','CHICO').single());
     tariffRestores.push(tariff);await ok(admin.api.from('precios_servicio').update({precio:110,componente_bano:110}).eq('id_precio',tariff.id_precio));
     assert.equal((await ok(owner.api.from('visitas').select('total').eq('id_visita',id).single())).total,325.5);
+    const preserved=await ok(owner.api.rpc('horarios_reprogramacion',{p_id_visita:id,p_fecha:day(0)}));
+    assert.ok(preserved.some(s=>new Date(s.inicio).getTime()===new Date(at(day(0))).getTime()));
+    assert.ok(preserved.every(s=>s.duracion_minutos===204));
+    await fails(stranger.api.rpc('horarios_reprogramacion',{p_id_visita:id,p_fecha:day(0)}),'42501');
     await ok(root.from('precios_servicio').update({precio:tariff.precio,componente_bano:tariff.componente_bano}).eq('id_precio',tariff.id_precio));
     await ok(owner.api.rpc('reprogramar_visita',{p_id_visita:id,p_inicio:at(day(2))}));
     await ok(owner.api.rpc('cancelar_visita',{p_id_visita:id}));
