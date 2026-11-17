@@ -20,6 +20,8 @@ import {
 
 import { supabase } from "../lib/supabase";
 
+import BookingWizard from "./appointments/BookingWizard";
+import { Button, Notice } from "./ui";
 import AddressesPanel from "./addresses/AddressesPanel";
 import PetForm from "./pets/PetForm";
 import PetsPanel from "./pets/PetsPanel";
@@ -38,6 +40,9 @@ function ClientDashboard({
   // =====================================================
   // ESTADOS
   // =====================================================
+
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [bookingMessage, setBookingMessage] = useState("");
 
   const [client, setClient] =
     useState(null);
@@ -696,16 +701,16 @@ function ClientDashboard({
             CITAS
         ============================================== */}
 
-        {view === "citas" && (
-          <AppointmentsSection
-            title="Mis citas"
-            appointments={
-              appointments
-            }
-          />
-        )}
+        {view === "citas" && (<>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><Notice tone="success">{bookingMessage}</Notice><Button onClick={() => client ? setBookingOpen(true) : openProfile()}>Agendar visita</Button></div>
+          <AppointmentsSection title="Mis citas" appointments={appointments} />
+        </>)}
+
         {view === "ubicacion" && <AddressesPanel client={client} onProfile={openProfile} />}
       </main>
+      {bookingOpen && client && <BookingWizard client={client} pets={pets} onClose={()=>setBookingOpen(false)}
+        onManagePets={()=>{setBookingOpen(false);setView('mascotas');}} onManageAddresses={()=>{setBookingOpen(false);setView('ubicacion');}}
+        onReserved={()=>{setBookingOpen(false);setView('citas');setBookingMessage('Tu visita está reservada. Revisa su estado en Mis citas.');loadData();}} />}
 
 
       {/* ===============================================
