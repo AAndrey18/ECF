@@ -545,7 +545,7 @@ function getMenuItems(role) {
 
       {
         view: "empleados",
-        text: "Empleados",
+        text: "Administración",
         icon: (
           <Users size={20} />
         ),

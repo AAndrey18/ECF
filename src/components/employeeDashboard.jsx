@@ -4,7 +4,8 @@ import { loadStaffData } from '../services/staff';
 import { message, rpc } from '../services/api';
 import { stateLabels } from '../lib/appointments';
 import DashboardLayout from './DashboardLayout';
-import { Empty, Notice } from './ui';
+import { Notice } from './ui';
+import AdminPanel from './admin/AdminPanel';
 import StaffAgenda from './staff/StaffAgenda';
 import StaffPayments from './staff/StaffPayments';
 import RouteValidationPanel from './staff/RouteValidationPanel';
@@ -32,7 +33,7 @@ export default function EmployeeDashboard({ user,onLogout,onProfile,initialView=
       {view==='citas'&&<StaffAgenda visits={visits} blocks={blocks} legacy={legacy} zone={business?.zona_horaria} onAction={action} onBlock={date=>setDialog({type:'block',date})} onUnblock={block=>setDialog({type:'unblock',block})}/>}
       {view==='pagos'&&<StaffPayments payments={payments} visits={visits} onOpen={id=>action('payment',id)}/>}
       {view==='recorridos'&&<RouteValidationPanel/>}
-      {view==='empleados'&&user.rol==='ADMIN'&&<div className="cw-panel"><Empty title="Administración del negocio">Gestión de la cuenta del estilista y reglas de atención.</Empty></div>}
+      {view==='empleados'&&user.rol==='ADMIN'&&<AdminPanel user={user} onChanged={query.reload}/>}
     </div>
     {visit&&dialog.type==='details'&&<VisitDetail visit={visit} onClose={()=>setDialog(null)}/>}
     {visit&&dialog.type==='cancel'&&<CancelDialog visit={visit} onClose={()=>setDialog(null)} onSaved={saved}/>}

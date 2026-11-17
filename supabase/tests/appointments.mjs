@@ -67,6 +67,13 @@ try {
     assert.equal((await quote(owner.api,[petInput(cat.id_mascota)])).subtotal_banos,150);
   });
   const two=[petInput(small.id_mascota,'BANO_INTEGRAL',['ASUNTOL']),petInput(medium.id_mascota)];
+  await test('administration enforces discount caps and customer permissions',async()=>{
+    await fails(admin.api.from('descuentos_mascotas').update({porcentaje:16}).eq('minimo_mascotas',2),'23514');
+    await fails(admin.api.from('descuentos_mascotas').update({porcentaje:1}).eq('minimo_mascotas',1),'23514');
+    await ok(owner.api.from('configuracion_negocio').update({precio_kilometro:0}).eq('id',true));
+    assert.equal(Number((await ok(root.from('configuracion_negocio').select('precio_kilometro').single())).precio_kilometro),10);
+    const data=await ok(admin.api.from('usuarios').select('id_usuario,rol,activo'));assert.ok(data.length>=4);
+  });
   await test('discount excludes extras; duration includes full service and visit before discount',async()=>{
     const q=await quote(owner.api,two);assert.equal(q.total,325.5);assert.equal(q.descuento,14.5);
     assert.equal(q.duracion_minutos,204);assert.equal(q.costo_visita,40);assert.equal(q.subtotal_extras,50);
