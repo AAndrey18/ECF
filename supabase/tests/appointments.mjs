@@ -118,6 +118,14 @@ try {
     const visit=await ok(owner.api.from('visitas').select('*,agenda_estilistas(*)').eq('id_visita',id).single());
     assert.equal(visit.total,325.5);assert.equal(new Date(visit.agenda_estilistas.fin).getTime(),new Date(at(day(0),'11:24')).getTime());
     assert.equal((await ok(owner.api.from('citas').select('id_cita').eq('id_visita',id))).length,2);
+    // The grouped screens need nested relations to remain visible through RLS.
+    const screenSelect='*, clientes(nombre,telefono,email), agenda_estilistas(*,estilistas(nombre,id_usuario)), citas(*,detalle_cita(*)), pagos(*)';
+    for(const session of [owner,staff,admin]){
+      const screen=await ok(session.api.from('visitas').select(screenSelect).eq('id_visita',id).single());
+      assert.equal(screen.clientes.nombre,'Cliente prueba A');
+      assert.equal(screen.agenda_estilistas.estilistas.id_usuario,staff.id);
+      assert.equal(screen.citas.length,2);assert.ok(screen.citas.every(c=>c.detalle_cita.length>0));
+    }
     await fails(Promise.resolve((await reserve(owner.api,[petInput(small.id_mascota)],at(day(0),'12:15'))).result),'23P01');
     const slots=await ok(owner.api.rpc('horarios_disponibles',{p_fecha:day(0),p_id_direccion:address,p_mascotas:two}));
     assert.ok(slots.every(s=>new Date(s.inicio)>=new Date(at(day(0),'12:24'))));

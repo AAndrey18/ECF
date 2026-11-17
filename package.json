@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "db:test": "node supabase/tests/run-local-tests.mjs"
+    "test": "node --test src/lib/appointments.test.mjs",
+    "db:test": "node supabase/tests/run-local-tests.mjs",
+    "db:demo": "node supabase/scripts/prepare-demo.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

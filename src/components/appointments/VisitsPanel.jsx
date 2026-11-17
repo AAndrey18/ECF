@@ -16,11 +16,17 @@ export default function VisitsPanel({
   const [filter, setFilter] = useState("proximas");
   const [dialog, setDialog] = useState(null);
   const [success, setSuccess] = useState("");
-  const active = visits.filter(
-    (v) =>
-      !["CANCELADA", "COMPLETADA"].includes(v.estado) &&
-      new Date(v.agenda_estilistas.fin) >= new Date(),
-  );
+  const active = visits
+    .filter(
+      (v) =>
+        !["CANCELADA", "COMPLETADA"].includes(v.estado) &&
+        new Date(v.agenda_estilistas.fin) >= new Date(),
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.agenda_estilistas.inicio) -
+        new Date(b.agenda_estilistas.inicio),
+    );
   const shown = compact
     ? active.slice(0, 2)
     : filter === "proximas"

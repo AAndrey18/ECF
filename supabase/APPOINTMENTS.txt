@@ -2,9 +2,12 @@ CAN WASH - SISTEMA DE CITAS EN LA BASE LOCAL
 Fecha: 2026-11-17
 
 ESTADO
-Las migraciones 20261117000002 a 20261117000007 se aplicaron SOLO a la base local.
-No se modifico la base de la nube. Los componentes React aun no incorporan el
-nuevo formulario, el selector de disponibilidad ni el resumen de visita.
+Las migraciones 20261117000002 a 20261117000009 se aplicaron SOLO a la base local.
+No se modifico la base de la nube. Los componentes React ya incorporan formularios
+de mascotas y domicilios, cotizacion, disponibilidad y reservas por visita.
+Mis citas agrupa mascotas, pagos e historial y permite cancelar y reprogramar.
+El personal dispone de agenda, valoraciones, recorridos y pagos. Administracion
+permite gestionar tarifas, descuentos, horarios, cierres, origen y cuentas.
 .env.local conecta src/lib/supabase.js a http://127.0.0.1:54321.
 Reiniciar Vite con npm.cmd run dev si estaba abierto antes del cambio de entorno.
 Studio: http://127.0.0.1:54323.
@@ -33,6 +36,7 @@ Duracion = ceil((banos + adicionales + visita ANTES DEL DESCUENTO) * 60 / 100).
 Traslado = max(40, round(kilometros * 10, 2)). Los kilometros admiten 3 decimales.
 Descuento = round((componente de bano + visita) * porcentaje / 100, 2).
 2 mascotas: 5%; 3: 10%; 4 o mas: 15%. No se descuentan adicionales.
+La administracion puede ajustar porcentajes hasta 15%; una mascota mantiene 0%.
 El paquete con rapado se divide en bano base + $100. Desenredado: bano + $200.
 No se suma dos veces el bano. El corte de garras individual no se agrega a banos.
 Asuntol $50, garras individuales $35, doble capa $100, manejo dificil $100,
@@ -67,14 +71,17 @@ El recorrido tarifado se mide del origen al domicilio indicado; no se duplica
 automaticamente para ida/vuelta ni se optimiza la ruta entre visitas.
 
 PUESTA EN MARCHA DE CUENTAS
-No se crearon usuarios reales ni contrasenas.
+No se crearon usuarios reales. Para una demostracion sintetica opcional, ejecutar
+npm.cmd run db:demo en local y consultar backups/demo-access.json (fuera de Git).
+No reemplaza una cuenta ya asociada al estilista ni acepta una URL remota.
+Para las cuentas definitivas:
 Registrar una cuenta local y asignarle ADMIN manualmente en Studio para administracion.
 Registrar la cuenta EMPLEADO del estilista. Desde una sesion de administrador:
   rpc('asignar_cuenta_estilista', { p_id_usuario: 'UUID_DE_LA_CUENTA_EMPLEADO' })
 Antes de asignarlo existe un cupo de agenda, pero el panel del empleado no podra
 ver las citas asociadas a ese cupo hasta enlazar su cuenta.
 
-CONTRATO PARA EL PROXIMO FORMULARIO
+CONTRATO UTILIZADO POR LOS FORMULARIOS
 1. Crear/editar el perfil del cliente y registrar mascotas con peso y pelaje.
 2. INSERT direcciones_cliente: id_cliente, direccion, colonia, latitud, longitud.
 3. Personal: rpc('validar_distancia_direccion', {p_id_direccion: 1, p_kilometros: 7.5}).
@@ -94,6 +101,9 @@ CONTRATO PARA EL PROXIMO FORMULARIO
 
 OTRAS OPERACIONES
 cancelar_visita(p_id_visita), reprogramar_visita(p_id_visita,p_inicio).
+horarios_reprogramacion(p_id_visita,p_fecha) consulta huecos conservando duracion
+y margen de la reserva original; excluye su propio intervalo. No usa una nueva
+cotizacion que pudiera incorporar tarifas cambiadas despues de reservar.
 bloquear_agenda(p_inicio,p_fin,p_motivo), liberar_bloqueo(p_id_agenda).
 cambiar_estado_visita(p_id_visita,p_estado): pendiente -> confirmada -> en proceso
 -> completada. Una pendiente de valoracion requiere valorar_visita primero.
@@ -118,12 +128,12 @@ Las reservas guardan precios, tiempo, mascota y domicilio como snapshots; cambia
 el catalogo o un perfil no modifica reservas anteriores automaticamente.
 Antes de llevarlo a la nube, conciliar citas antiguas sin duracion: bloquean la
 oferta automatica de su dia para evitar solapamientos por estimaciones inventadas.
-Los paneles React antiguos siguen consultando citas/detalle_cita; deben adaptarse
-para mostrar el total de visita, descuento y pagos agrupados. No distribuir el
-traslado ni el descuento artificialmente entre mascotas en esos paneles.
+Los paneles React muestran el total de visita, descuento y pagos agrupados.
+Las citas antiguas sin id_visita se conservan para consulta y conciliacion.
+No se distribuye el traslado ni el descuento entre mascotas artificialmente.
 
 VERIFICACION Y RESPALDO
-npm.cmd run db:test: 17 grupos de pruebas de API, con dos solicitudes simultaneas,
+npm.cmd run db:test: 18 grupos de pruebas de API, con dos solicitudes simultaneas,
 validacion de permisos, integridad transaccional, tarifas, horarios y valoraciones.
 Las pruebas admiten exclusivamente http://127.0.0.1:54321, usan cuentas sinteticas
 y eliminan sus datos. No guardan la clave service_role en archivos.
@@ -131,3 +141,6 @@ Se reconstruyeron todas las migraciones en una base temporal y se probo el trigg
 El respaldo previo a esta ampliacion esta en backups/local-before-appointments.dump.
 Los cambios siguientes se agregan como nuevas migraciones; no modificar el historial
 inicial ni ejecutar db push contra la nube sin revisar su migracion de datos.
+
+npm.cmd test comprueba fechas en la zona del negocio y saldo neto con reembolsos.
+npm.cmd run lint y npm.cmd run build comprueban el frontend.

@@ -2,7 +2,8 @@ CAN WASH - COPIA LOCAL DE LA ESTRUCTURA
 Fecha: 2026-11-17
 
 ACTUALIZACION POSTERIOR: se amplio el sistema de citas en las migraciones 000002
-a 000007. Consultar APPOINTMENTS.txt para el estado actual, las funciones RPC y
+a 000009 y se integraron los paneles React. Consultar APPOINTMENTS.txt y README.md
+para el estado actual, las funciones RPC y
 las pruebas. RLS YA ESTA ACTIVADO y el fallo del rol nulo YA ESTA CORREGIDO en
 local; las observaciones de la copia inicial que siguen describen el estado
 original de la nube, no el estado actual ampliado de la base local.
