@@ -20,6 +20,7 @@ import {
 
 import { supabase } from "../lib/supabase";
 
+import AddressesPanel from "./addresses/AddressesPanel";
 import PetForm from "./pets/PetForm";
 import PetsPanel from "./pets/PetsPanel";
 
@@ -703,6 +704,7 @@ function ClientDashboard({
             }
           />
         )}
+        {view === "ubicacion" && <AddressesPanel client={client} onProfile={openProfile} />}
       </main>
 
 
